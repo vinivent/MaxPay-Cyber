@@ -1,4 +1,4 @@
-"""Testes do FinalPay.
+"""Testes do MaxPay.
 
 Cobrem o que nao pode quebrar sem ninguem perceber: round-trip da cifra,
 deteccao de adulteracao, esteganografia, e o fato de que os tres ataques
@@ -16,8 +16,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from finalpay import baseline, cipher, detect, events, lake, metrics, stego
-from finalpay.attacks import brute_force, differential, statistical
+from maxpay import baseline, cipher, detect, events, lake, metrics, stego
+from maxpay.attacks import brute_force, differential, statistical
 
 
 # --------------------------------------------------------------------------
@@ -32,7 +32,7 @@ def test_round_trip(modo, n):
 
 @pytest.mark.parametrize("rodadas,difusao", [(14, True), (3, True), (1, False), (32, True)])
 def test_bloco_e_inverso(rodadas, difusao):
-    c = cipher.FinalPayCipher(os.urandom(32), rodadas, difusao)
+    c = cipher.MaxPayCipher(os.urandom(32), rodadas, difusao)
     b = os.urandom(16)
     assert c.decrypt_block(c.encrypt_block(b)) == b
 
@@ -118,9 +118,9 @@ def test_permutacao_e_bijetiva():
 
 def test_chave_invalida():
     with pytest.raises(ValueError):
-        cipher.FinalPayCipher(b"curta", 14)
+        cipher.MaxPayCipher(b"curta", 14)
     with pytest.raises(ValueError):
-        cipher.FinalPayCipher(os.urandom(32), 0)
+        cipher.MaxPayCipher(os.urandom(32), 0)
 
 
 def test_aes_round_trip_e_integridade():
@@ -252,7 +252,7 @@ def test_saida_passa_nos_testes_estatisticos():
     teste de regressao precisa ser.
     """
     claro = statistical.sample_ledger(600)
-    cp = cipher.FinalPayCipher(bytes(range(32)))
+    cp = cipher.MaxPayCipher(bytes(range(32)))
     n_blocos = (len(claro) + cipher.BLOCK - 1) // cipher.BLOCK
     fluxo = cp.keystream(b"nonce-fixo01", n_blocos).reshape(-1)[: len(claro)]
     corpo = (np.frombuffer(claro, dtype=np.uint8) ^ fluxo).tobytes()

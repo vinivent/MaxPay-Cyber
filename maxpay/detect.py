@@ -1,4 +1,4 @@
-"""Camada de IA do FinalPay (etapa 5 da arquitetura).
+"""Camada de IA do MaxPay (etapa 5 da arquitetura).
 
 Recebe as janelas ja agregadas pelo data lake e aponta comportamento anormal
 com Isolation Forest, sem usar os rotulos no treino. Os rotulos existem apenas

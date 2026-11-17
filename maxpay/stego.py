@@ -14,13 +14,13 @@ import zlib
 import numpy as np
 from PIL import Image
 
-MAGIC = b"FP"
+MAGIC = b"MP"
 HEADER_BYTES = 10  # magic(2) + tamanho(4) + crc32(4)
 
 
 def _order(secret: str | bytes, n_slots: int) -> np.ndarray:
     raw = secret.encode() if isinstance(secret, str) else secret
-    seed = int.from_bytes(hashlib.sha256(b"finalpay/stego/" + raw).digest()[:8], "big")
+    seed = int.from_bytes(hashlib.sha256(b"maxpay/stego/" + raw).digest()[:8], "big")
     return np.random.default_rng(seed).permutation(n_slots)
 
 
@@ -54,7 +54,7 @@ def extract(image: bytes | str, secret: str | bytes) -> bytes:
     slots = _order(secret, flat.size)
     head = np.packbits(flat[slots[: HEADER_BYTES * 8]] & 1).tobytes()
     if head[:2] != MAGIC:
-        raise ValueError("nenhum payload FinalPay encontrado (ou chave incorreta)")
+        raise ValueError("nenhum payload MaxPay encontrado (ou chave incorreta)")
     length = int.from_bytes(head[2:6], "big")
     crc = int.from_bytes(head[6:10], "big")
     total = (HEADER_BYTES + length) * 8

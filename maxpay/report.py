@@ -4,7 +4,7 @@ Nenhum numero e digitado a mao: se a bateria rodar de novo, o relatorio muda
 junto. Estrutura conforme a Parte 5 do enunciado (descricao do algoritmo,
 funcionamento, testes, resultados e conclusao).
 
-    python -m finalpay.report
+    python -m maxpay.report
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from finalpay.experiments import carregar
+from maxpay.experiments import carregar
 
 DOCS = Path(__file__).resolve().parent.parent / "docs"
 GRUPO = [
@@ -24,9 +24,9 @@ GRUPO = [
 # Rotulos de exibicao: as chaves internas sao sem acento, os textos nao.
 NOMES = {
     "texto_claro": "Texto claro",
-    "fpc_ctr_14_rodadas": "FPC-128 · CTR, 14 rodadas",
-    "fpc_ecb_14_rodadas": "FPC-128 · ECB, 14 rodadas",
-    "fpc_ecb_1_rodada_sem_difusao": "FPC-128 · ECB, 1 rodada, sem difusão",
+    "mpc_ctr_14_rodadas": "MPC-128 · CTR, 14 rodadas",
+    "mpc_ecb_14_rodadas": "MPC-128 · ECB, 14 rodadas",
+    "mpc_ecb_1_rodada_sem_difusao": "MPC-128 · ECB, 1 rodada, sem difusão",
     "aes256_gcm": "AES-256-GCM",
     "urandom": "/dev/urandom (controle)",
     "original": "Imagem original",
@@ -40,7 +40,7 @@ NOMES = {
     "surto_de_eventos": "Surto de eventos",
     "imagem_limpa": "Imagem limpa",
     "lsb_sequencial_sem_chave": "LSB sequencial, sem chave",
-    "lsb_chaveado_finalpay": "LSB chaveado do FinalPay",
+    "lsb_chaveado_maxpay": "LSB chaveado do MaxPay",
 }
 
 
@@ -97,12 +97,12 @@ def tabela(cabecalho: list[str], linhas: list[list[str]]) -> str:
 
 def gerar(res: dict) -> str:
     c, d, bf, dic = res["cifra"], res["diferencial"], res["forca_bruta"], res["dicionario"]
-    av, fraco, aes = d["fpc_integro"], d["fpc_fraco"], d["aes256"]
+    av, fraco, aes = d["mpc_integro"], d["mpc_fraco"], d["aes256"]
     sac, sac_f = res["sac"], res["sac_fraco"]
     perfis = {p["rotulo"]: p for p in res["estatistico"]["perfis"]}
-    ctr, claro = perfis["fpc_ctr_14_rodadas"], perfis["texto_claro"]
-    ecb14 = perfis["fpc_ecb_14_rodadas"]
-    fraco_ecb = perfis["fpc_ecb_1_rodada_sem_difusao"]
+    ctr, claro = perfis["mpc_ctr_14_rodadas"], perfis["texto_claro"]
+    ecb14 = perfis["mpc_ecb_14_rodadas"]
+    fraco_ecb = perfis["mpc_ecb_1_rodada_sem_difusao"]
     aes_perf = perfis["aes256_gcm"]
     urandom = perfis["urandom"]
     freq_f, freq_c = res["frequencia"]["sem_difusao"], res["frequencia"]["com_difusao"]
@@ -113,7 +113,7 @@ def gerar(res: dict) -> str:
     surto = next(r for r in ia["por_tipo"] if r["tipo"] == "surto_de_eventos")
     rodada_difusao = v["efeito_avalanche"]["rodadas_ate_difusao_total"]
 
-    return f"""# FinalPay, Sistema Criptográfico e Análise de Ataques
+    return f"""# MaxPay, Sistema Criptográfico e Análise de Ataques
 
 **Disciplina:** Cibersegurança Aplicada a Dados e IA: CESAR School
 **Professora:** Renatta Nigro
@@ -121,7 +121,7 @@ def gerar(res: dict) -> str:
 **Data:** {datetime.now().strftime("%d/%m/%Y")}
 
 > Todos os números deste relatório foram produzidos pela bateria de experimentos
-> do próprio sistema (`python -m finalpay.experiments`), executada em
+> do próprio sistema (`python -m maxpay.experiments`), executada em
 > {res["meta"]["gerado_em"].replace("T", " ")} sobre {res["meta"]["plataforma"]},
 > Python {res["meta"]["python"]}. Nenhum valor foi transcrito à mão.
 
@@ -129,8 +129,8 @@ def gerar(res: dict) -> str:
 
 ## 1. Resumo executivo
 
-O FinalPay é o cofre criptográfico de um banco digital fictício. Ele cifra
-transações, documentos e imagens com uma cifra de bloco própria (**FPC-128**),
+O MaxPay é o cofre criptográfico de um banco digital fictício. Ele cifra
+transações, documentos e imagens com uma cifra de bloco própria (**MPC-128**),
 esconde o resultado dentro de imagens por esteganografia, registra cada operação
 num lago de dados de {i(bd["resumo"]["eventos"])} eventos e usa aprendizado de
 máquina para apontar comportamento anormal.
@@ -142,7 +142,7 @@ enfraquecida, de 1 rodada sem MixColumns. **A variante enfraquecida cai; a
 íntegra não cede a nenhum dos três.** É essa comparação que sustenta o veredito
 da Parte 4, e não uma afirmação de que "o sistema é seguro".
 
-| Medida | FPC-128 íntegro | Variante enfraquecida | AES-256 |
+| Medida | MPC-128 íntegro | Variante enfraquecida | AES-256 |
 |---|---|---|---|
 | Efeito avalanche | **{n(av["media_pct"])}%** | {n(fraco["media_pct"])}% | {n(aes["media_pct"])}% |
 | Entropia da saída (bits/byte) | **{n(ctr["entropia_bits_por_byte"], 4)}** | {n(fraco_ecb["entropia_bits_por_byte"], 4)} | {n(aes_perf["entropia_bits_por_byte"], 4)} |
@@ -157,15 +157,15 @@ As seis camadas pedidas no enunciado, e onde cada uma vive no código:
 
 | # | Camada | Função | Implementação |
 |---|---|---|---|
-| 1 | Entrada de dados | Texto, arquivos e imagens | `finalpay/api.py` |
-| 2 | Criptografia | FPC-128 próprio + AES-256-GCM | `finalpay/cipher.py`, `finalpay/baseline.py` |
-| 3 | Esteganografia | Ocultação em imagens PNG | `finalpay/stego.py` |
-| 4 | Big Data | Geração, Parquet particionado, DuckDB | `finalpay/events.py`, `finalpay/lake.py` |
-| 5 | Inteligência Artificial | Isolation Forest sobre janelas | `finalpay/detect.py` |
-| 6 | Dashboard | API + painel web | `finalpay/api.py`, `web/` |
+| 1 | Entrada de dados | Texto, arquivos e imagens | `maxpay/api.py` |
+| 2 | Criptografia | MPC-128 próprio + AES-256-GCM | `maxpay/cipher.py`, `maxpay/baseline.py` |
+| 3 | Esteganografia | Ocultação em imagens PNG | `maxpay/stego.py` |
+| 4 | Big Data | Geração, Parquet particionado, DuckDB | `maxpay/events.py`, `maxpay/lake.py` |
+| 5 | Inteligência Artificial | Isolation Forest sobre janelas | `maxpay/detect.py` |
+| 6 | Dashboard | API + painel web | `maxpay/api.py`, `web/` |
 
-Os ataques ficam em `finalpay/attacks/` e a bateria de medição em
-`finalpay/experiments.py`.
+Os ataques ficam em `maxpay/attacks/` e a bateria de medição em
+`maxpay/experiments.py`.
 
 ---
 
@@ -213,13 +213,13 @@ rodadas, medido na seção 6.1.
 ### 3.3 O que é nosso e o que vem da família do AES
 
 Esta é a pergunta que o trabalho precisa responder sem rodeios. A **estrutura**
-do FPC-128 é a mesma do AES, e isso é deliberado: é a rede SPN com S-box
+do MPC-128 é a mesma do AES, e isso é deliberado: é a rede SPN com S-box
 baseada em inverso multiplicativo em GF(2⁸) que garante as boas propriedades,
 e reinventá-la daria um resultado pior, não mais original. Os **três
 componentes concretos**, porém, são escolha nossa, e nenhum coincide com o do
 AES:
 
-{tabela(["Componente", "FPC-128 (nosso)", "AES", "Como foi escolhido"],
+{tabela(["Componente", "MPC-128 (nosso)", "AES", "Como foi escolhido"],
         [["Transformação afim da S-box",
           f"rotações {tuple(c['projeto']['sbox_rotacoes'])}, constante {c['projeto']['sbox_constante']}",
           f"rotações {tuple(c['projeto']['sbox_rotacoes_aes'])}, constante {c['projeto']['sbox_constante_aes']}",
@@ -275,7 +275,7 @@ dashboard exibe como lacre íntegro ou violado.
 ```
 texto/arquivo/imagem
    └─ PBKDF2(senha, salt) ─ HKDF(nonce) ─ subchaves
-        └─ FPC-128 em modo CTR ─ texto cifrado
+        └─ MPC-128 em modo CTR ─ texto cifrado
              └─ HMAC-SHA256 ─ envelope autenticado
                   └─ esteganografia LSB com posições derivadas da chave
                        └─ imagem portadora
@@ -308,7 +308,7 @@ diferentes, o problema que a seção 6.6 demonstra no modo ECB.
 | 13 | Big Data | ingestão e consulta | {i(bd["resumo"]["eventos"])} eventos |
 | 14 | Detecção de anomalias | AUC, precisão e revocação | {i(ia["janelas"])} janelas |
 
-Reproduzíveis por `python -m finalpay.experiments` e verificados por
+Reproduzíveis por `python -m maxpay.experiments` e verificados por
 `pytest` ({42} testes).
 
 ---
@@ -345,7 +345,7 @@ O SAC exige que a inversão de qualquer bit *i* da entrada inverta qualquer bit
 
 | Variante | Média | Desvio máximo | Limite (Bonferroni 5%) | Células fora | Satisfaz |
 |---|---|---|---|---|---|
-| FPC-128 íntegro | {n(sac["media"], 5)} | {n(sac["desvio_maximo"], 5)} | {n(sac["limite_bonferroni"], 5)} | {sac["celulas_fora_do_limite"]} | **{"Sim" if sac["satisfaz_sac"] else "Não"}** |
+| MPC-128 íntegro | {n(sac["media"], 5)} | {n(sac["desvio_maximo"], 5)} | {n(sac["limite_bonferroni"], 5)} | {sac["celulas_fora_do_limite"]} | **{"Sim" if sac["satisfaz_sac"] else "Não"}** |
 | 1 rodada sem difusão | {n(sac_f["media"], 5)} | {n(sac_f["desvio_maximo"], 5)} | {n(sac_f["limite_bonferroni"], 5)} | {i(sac_f["celulas_fora_do_limite"])} | **{"Sim" if sac_f["satisfaz_sac"] else "Não"}** |
 
 O limite usa correção de Bonferroni porque são 16.384 testes simultâneos: sem
@@ -365,7 +365,7 @@ Extrapolando a mesma taxa:
         [[f"2^{p['bits']}", p["cenario"], p["anos_fmt"], "Sim" if p["viavel"] else "Não"]
          for p in bf["projecao"]])}
 
-Para os 256 bits do FPC-128 seriam necessários **{proj_gpu[256]["anos_fmt"]}**
+Para os 256 bits do MPC-128 seriam necessários **{proj_gpu[256]["anos_fmt"]}**
 mesmo com um milhão de GPUs, cerca de
 {sci(proj_gpu[256]["vezes_idade_universo"])} vezes a idade do universo. O número
 de rodadas não altera isso: o espaço de chaves é o mesmo na variante enfraquecida.
@@ -387,7 +387,7 @@ Medição direta com {i(d["distinguidor_integro"]["amostras"])} pares de texto c
 aplicando sempre a mesma diferença de entrada:
 
 {tabela(["Variante", "Diferenças de saída distintas", "Repetição máxima", "Distinguível"],
-        [["FPC-128 íntegro",
+        [["MPC-128 íntegro",
           n(d["distinguidor_integro"]["pct_saidas_distintas"]) + "%",
           f'{d["distinguidor_integro"]["ocorrencias"]} ocorrência(s)',
           "Não" if not d["distinguidor_integro"]["distinguivel"] else "Sim"],
@@ -419,7 +419,7 @@ sob diferentes tratamentos:
          for p in res["estatistico"]["perfis"]])}
 
 O texto claro tem entropia {n(claro["entropia_bits_por_byte"], 4)} bits/byte e
-falha em todos os testes. A saída do FPC-128 em modo CTR tem
+falha em todos os testes. A saída do MPC-128 em modo CTR tem
 {n(ctr["entropia_bits_por_byte"], 4)} bits/byte (máximo teórico 8), índice de
 coincidência {n(ctr["indice_coincidencia"], 6)} contra o 0,003906 de uma fonte
 uniforme, e χ² com p = {n(ctr["chi2_p_valor"], 4)}, não se rejeita a hipótese de
@@ -491,8 +491,8 @@ carga de {i(est["esteganalise"]["payload_da_comparacao_bytes"])} bytes
 
 O LSB sequencial clássico acende
 {est["esteganalise"]["segmentos_suspeitos"]["lsb_sequencial_sem_chave"]} segmentos;
-a versão do FinalPay, com posições derivadas da chave, acende
-**{est["esteganalise"]["segmentos_suspeitos"]["lsb_chaveado_finalpay"]}**, igual à
+a versão do MaxPay, com posições derivadas da chave, acende
+**{est["esteganalise"]["segmentos_suspeitos"]["lsb_chaveado_maxpay"]}**, igual à
 imagem limpa. Espalhar os bits por uma permutação secreta não é detalhe de
 implementação: é o que remove a assinatura.
 
@@ -560,10 +560,10 @@ volume. As que falham alguma coisa são detectadas quase integralmente.
 
 | Algoritmo | Vazão |
 |---|---|
-| FPC-128 (Python + numpy) | {n(desemp["fpc128_mb_por_s"])} MB/s |
+| MPC-128 (Python + numpy) | {n(desemp["mpc128_mb_por_s"])} MB/s |
 | AES-256-GCM (biblioteca com AES-NI) | {n(desemp["aes256_mb_por_s"])} MB/s |
 
-O AES é {n(desemp["razao_aes_sobre_fpc"], 1)}× mais rápido, e isso era esperado:
+O AES é {n(desemp["razao_aes_sobre_mpc"], 1)}× mais rápido, e isso era esperado:
 {desemp["nota"]} A comparação mede implementação, não qualidade criptográfica.
 
 ---
@@ -607,7 +607,7 @@ produzem resultados de naturezas diferentes e não se comparam por um número
 
 ## 8. Conclusão
 
-O FPC-128 passou nos três ataques exigidos. Avalanche de {n(av["media_pct"])}%,
+O MPC-128 passou nos três ataques exigidos. Avalanche de {n(av["media_pct"])}%,
 SAC satisfeito em todas as 16.384 células, saída indistinguível de aleatória e
 espaço de chaves de 256 bits colocam a cifra, nas medições feitas, no mesmo
 patamar de comportamento do AES-256.
@@ -632,11 +632,11 @@ variante enfraquecida, que mostra **de onde** vem a segurança:
    revocação sobe de {n(surto["revocacao_pct"], 1)}% para
    {n(_revoc_em(ia, 0.02, "surto_de_eventos"), 1)}%.
 
-Nada disso faz do FPC-128 uma cifra de produção. Ele não passou por
+Nada disso faz do MPC-128 uma cifra de produção. Ele não passou por
 criptanálise independente, não é de tempo constante, e não recebeu análise
 linear nem prova formal de resistência. Uma cifra se torna confiável por anos de
 tentativa pública de quebra, não por uma bateria de testes dos próprios autores.
-É exatamente por isso que a camada AES-256 existe no sistema: **o FPC-128 é o
+É exatamente por isso que a camada AES-256 existe no sistema: **o MPC-128 é o
 objeto de estudo; o AES-256 é o que protegeria o dinheiro de verdade.**
 
 ---
@@ -647,39 +647,39 @@ objeto de estudo; o AES-256 é o que protegeria o dinheiro de verdade.**
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python -m finalpay.experiments     # gera results/experimentos.json
-python -m finalpay.report          # regera este relatório
+python -m maxpay.experiments     # gera results/experimentos.json
+python -m maxpay.report          # regera este relatório
 pytest -q                          # 42 testes
-uvicorn finalpay.api:app --reload  # dashboard em http://127.0.0.1:8000
+uvicorn maxpay.api:app --reload  # dashboard em http://127.0.0.1:8000
 ```
 
 ## 10. Onde cada requisito está
 
 {tabela(["Requisito do enunciado", "Onde está", "Evidência"],
-        [["Criptografia simétrica com geração dinâmica de chaves", "`finalpay/cipher.py`", "§3.3"],
-         ["XOR, substituição, permutação, blocos", "`finalpay/cipher.py`", "§3.2"],
-         ["Difusão / confusão", "`finalpay/cipher.py`", "§6.1, §6.2"],
-         ["Esteganografia em imagens", "`finalpay/stego.py`", "§6.8"],
-         ["Big Data de eventos", "`finalpay/events.py`, `finalpay/lake.py`", "§6.9"],
-         ["IA para detectar comportamento anormal", "`finalpay/detect.py`", "§6.10"],
-         ["Ataque de força bruta", "`finalpay/attacks/brute_force.py`", "§6.3"],
-         ["Ataque diferencial", "`finalpay/attacks/differential.py`", "§6.4"],
-         ["Ataque estatístico", "`finalpay/attacks/statistical.py`", "§6.5, §6.6"],
-         ["Efeito avalanche", "`finalpay/attacks/differential.py`", "§6.1"],
-         ["Distribuição estatística", "`finalpay/metrics.py`", "§6.5"],
-         ["Dashboard", "`finalpay/api.py`, `web/`", "camada 6"],
-         ["Logs de operações criptográficas", "`finalpay/events.py`", "§6.9"],
-         ["Falhas de autenticação", "`finalpay/events.py`", "§6.10"],
-         ["Os 5 tipos de anomalia", "`finalpay/events.py`", "§6.10"],
+        [["Criptografia simétrica com geração dinâmica de chaves", "`maxpay/cipher.py`", "§3.3"],
+         ["XOR, substituição, permutação, blocos", "`maxpay/cipher.py`", "§3.2"],
+         ["Difusão / confusão", "`maxpay/cipher.py`", "§6.1, §6.2"],
+         ["Esteganografia em imagens", "`maxpay/stego.py`", "§6.8"],
+         ["Big Data de eventos", "`maxpay/events.py`, `maxpay/lake.py`", "§6.9"],
+         ["IA para detectar comportamento anormal", "`maxpay/detect.py`", "§6.10"],
+         ["Ataque de força bruta", "`maxpay/attacks/brute_force.py`", "§6.3"],
+         ["Ataque diferencial", "`maxpay/attacks/differential.py`", "§6.4"],
+         ["Ataque estatístico", "`maxpay/attacks/statistical.py`", "§6.5, §6.6"],
+         ["Efeito avalanche", "`maxpay/attacks/differential.py`", "§6.1"],
+         ["Distribuição estatística", "`maxpay/metrics.py`", "§6.5"],
+         ["Dashboard", "`maxpay/api.py`, `web/`", "camada 6"],
+         ["Logs de operações criptográficas", "`maxpay/events.py`", "§6.9"],
+         ["Falhas de autenticação", "`maxpay/events.py`", "§6.10"],
+         ["Os 5 tipos de anomalia", "`maxpay/events.py`", "§6.10"],
          ["Arquitetura em 6 camadas", "todo o pacote", "§2"],
-         ["Respostas da Parte 4", "`finalpay/experiments.py`", "§7"]])}
+         ["Respostas da Parte 4", "`maxpay/experiments.py`", "§7"]])}
 """
 
 
 def main() -> Path:
     res = carregar()
     if res is None:
-        raise SystemExit("Rode `python -m finalpay.experiments` primeiro.")
+        raise SystemExit("Rode `python -m maxpay.experiments` primeiro.")
     DOCS.mkdir(parents=True, exist_ok=True)
     destino = DOCS / "RELATORIO.md"
     destino.write_text(gerar(res), encoding="utf-8")

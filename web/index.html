@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FinalPay: Cofre Criptográfico</title>
-<meta name="description" content="Cofre criptográfico de um banco digital que mede a própria segurança: cifra própria FPC-128, esteganografia, 2 milhões de eventos e detecção de anomalias.">
+<title>MaxPay: Cofre Criptográfico</title>
+<meta name="description" content="Cofre criptográfico de um banco digital que mede a própria segurança: cifra própria MPC-128, esteganografia, 2 milhões de eventos e detecção de anomalias.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2315418E'/%3E%3Cpath d='M8 11V8.5a4 4 0 0 1 8 0V11M7 11h10v7H7z' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="app.css">
 </head>
@@ -54,7 +54,7 @@
 </svg>
 
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">FP</span>FinalPay</div>
+  <div class="brand"><span class="brand-mark">FP</span>MaxPay</div>
   <span class="brand-tag">Cofre criptográfico</span>
   <div class="topbar-right">
     <span id="status-bateria" class="meta num">carregando…</span>
@@ -94,10 +94,10 @@
             <label class="field" id="campo-arquivo" hidden><span class="label">Arquivo</span>
               <input type="file" id="cofre-arquivo"></label>
             <label class="field"><span class="label">Senha do cofre</span>
-              <input type="password" id="cofre-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+              <input type="password" id="cofre-senha" value="cofre-maxpay-2026" autocomplete="off"></label>
             <div class="grid grid-2">
               <label class="field"><span class="label">Algoritmo</span>
-                <select id="cofre-algo"><option>FPC-128</option><option>AES-256</option></select></label>
+                <select id="cofre-algo"><option>MPC-128</option><option>AES-256</option></select></label>
               <label class="field"><span class="label">Modo</span>
                 <select id="cofre-modo"><option>CTR</option><option>ECB</option></select></label>
             </div>
@@ -113,7 +113,7 @@
             <label class="field"><span class="label">Envelope</span>
               <textarea id="dec-envelope" placeholder="cole o envelope ou proteja algo ao lado"></textarea></label>
             <label class="field"><span class="label">Senha</span>
-              <input type="password" id="dec-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+              <input type="password" id="dec-senha" value="cofre-maxpay-2026" autocomplete="off"></label>
             <div class="row"><button id="btn-decifrar" class="btn btn-primary">Abrir</button></div>
             <div id="dec-saida"></div>
           </div>
@@ -142,7 +142,7 @@
             <label class="field"><span class="label">Mensagem</span>
               <textarea id="oc-texto">PIX de R$ 12.480,00 para CT4412-9 em 17/11/2026</textarea></label>
             <label class="field"><span class="label">Senha</span>
-              <input type="password" id="oc-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+              <input type="password" id="oc-senha" value="cofre-maxpay-2026" autocomplete="off"></label>
             <label class="field"><span class="label">Imagem portadora</span>
               <input type="file" id="oc-portadora" accept="image/png,image/jpeg"></label>
             <div class="row">
@@ -158,7 +158,7 @@
             <label class="field"><span class="label">Imagem com conteúdo oculto</span>
               <input type="file" id="rev-imagem" accept="image/png"></label>
             <label class="field"><span class="label">Senha</span>
-              <input type="password" id="rev-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+              <input type="password" id="rev-senha" value="cofre-maxpay-2026" autocomplete="off"></label>
             <div class="row">
               <button id="btn-revelar" class="btn btn-primary">Revelar</button>
               <button id="btn-rev-exemplo" class="btn">Usar imagem de exemplo</button>

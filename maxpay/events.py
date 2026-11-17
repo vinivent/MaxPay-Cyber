@@ -1,4 +1,4 @@
-"""Gerador de eventos de seguranca do FinalPay (etapa 4 da arquitetura).
+"""Gerador de eventos de seguranca do MaxPay (etapa 4 da arquitetura).
 
 Produz o fluxo que a camada de Big Data armazena e a IA analisa:
 operacoes criptograficas, tentativas de autenticacao, acessos a arquivos e
@@ -58,7 +58,7 @@ NOMES_EXIBICAO.update(NOMES_LONGOS)
 
 TIPOS = ["cifragem", "decifragem", "autenticacao", "esteganografia", "acesso_arquivo", "transferencia"]
 TIPO_P = [0.26, 0.24, 0.20, 0.06, 0.12, 0.12]
-ALGORITMOS = ["FPC-128", "AES-256"]
+ALGORITMOS = ["MPC-128", "AES-256"]
 DISPOSITIVOS = ["app-android", "app-ios", "web-chrome", "web-safari", "caixa-eletronico", "api-parceiro"]
 
 # Perfil diurno: pico comercial, vale de madrugada.

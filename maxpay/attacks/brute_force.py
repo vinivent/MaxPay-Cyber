@@ -21,22 +21,22 @@ import time
 
 import numpy as np
 
-from finalpay.cipher import (
+from maxpay.cipher import (
     DEFAULT_ROUNDS,
     KDF_ITERATIONS,
-    FinalPayCipher,
+    MaxPayCipher,
     derive_keys,
     encrypt_many_keys,
     expand_round_keys,
 )
 
-KNOWN_PLAINTEXT = b"FinalPay::TX0001"
+KNOWN_PLAINTEXT = b"MaxPay::TX000001"
 SEGUNDOS_POR_ANO = 365.25 * 24 * 3600
 IDADE_DO_UNIVERSO_ANOS = 1.38e10
 
 SENHAS_COMUNS = [
     "123456", "senha", "123456789", "12345678", "qwerty", "admin", "banco123",
-    "abc123", "finalpay", "password", "1234", "master", "pix2026", "caixa",
+    "abc123", "maxpay", "password", "1234", "master", "pix2026", "caixa",
     "000000", "102030", "bradesco", "itau2026", "santander", "nubank",
 ]
 
@@ -80,7 +80,7 @@ def brute_force(
     espaco = 1 << bits
     alvo_idx = secrets.randbelow(espaco)
     chave_real = prefixo + alvo_idx.to_bytes(4, "big")
-    alvo = FinalPayCipher(chave_real, rounds, diffusion).encrypt_block(KNOWN_PLAINTEXT)
+    alvo = MaxPayCipher(chave_real, rounds, diffusion).encrypt_block(KNOWN_PLAINTEXT)
     alvo_arr = np.frombuffer(alvo, dtype=np.uint8)
 
     inicio = time.perf_counter()
@@ -132,8 +132,8 @@ def keyspace_projection(taxa_chaves_por_segundo: float) -> list[dict]:
         (32, "entropia reduzida (didática)"),
         (56, "DES legado"),
         (64, "chave curta"),
-        (128, "FPC-128 / AES-128"),
-        (256, "FPC-128 / AES-256"),
+        (128, "MPC-128 / AES-128"),
+        (256, "MPC-128 / AES-256"),
     ]:
         esperado = (2.0**bits) / 2  # metade do espaco, em media
         for fator, cenario in [(1, "1 núcleo (medido)"), (1e6, "1 milhão de GPUs")]:

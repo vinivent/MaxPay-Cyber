@@ -1,4 +1,4 @@
-/* FinalPay — primitivas de grafico em SVG puro.
+/* MaxPay — primitivas de grafico em SVG puro.
    Regras seguidas: um unico eixo por grafico, marcas finas, grade recessiva,
    extremidades arredondadas em 4px ancoradas na linha de base, legenda sempre
    que houver duas ou mais series, e camada de hover em todas as formas. */

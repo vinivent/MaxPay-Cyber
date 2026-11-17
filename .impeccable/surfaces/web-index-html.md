@@ -7,7 +7,7 @@ related_targets: []
 
 ## Scope
 
-Superficie unica: o dashboard do FinalPay (`web/index.html`), modo Operate.
+Superficie unica: o dashboard do MaxPay (`web/index.html`), modo Operate.
 Oito destinos numa navegacao lateral: Panorama, as seis camadas da arquitetura
 do enunciado (Cofre, Cifragem, Esteganografia, Big Data, IA, Veredito) e o
 Laboratorio de ataques. Publico: a professora avaliadora, primeiro numa
@@ -38,7 +38,7 @@ a acreditar porque cada numero vem acompanhado da variante enfraquecida que
 falha no mesmo teste; e age abrindo o Laboratorio de ataques para rodar com os
 proprios parametros e ver o resultado mudar.
 
-FIRST VIEWPORT: Barra superior de 56px com a marca FinalPay, o estado da bateria
+FIRST VIEWPORT: Barra superior de 56px com a marca MaxPay, o estado da bateria
 e o botao de executar. Rail esquerdo de 248px com a navegacao: Panorama, as seis
 camadas numeradas de 1 a 6 (a numeracao carrega informacao — e a ordem da
 arquitetura exigida) e, apos um divisor rotulado ANALISE, o Laboratorio de

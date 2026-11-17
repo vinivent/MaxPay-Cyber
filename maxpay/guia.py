@@ -3,7 +3,7 @@
 Le os titulos do deck ja gerado, para o roteiro nunca descrever uma tela que
 nao existe mais, e os numeros da bateria, para nao envelhecer.
 
-    python -m finalpay.slides && python -m finalpay.guia
+    python -m maxpay.slides && python -m maxpay.guia
 """
 
 from __future__ import annotations
@@ -14,10 +14,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from finalpay.experiments import carregar
-from finalpay.notas import NOTAS
-from finalpay.report import DOCS, GRUPO, i, n
-from finalpay.slides import DESTINO as DECK
+from maxpay.experiments import carregar
+from maxpay.notas import NOTAS
+from maxpay.report import DOCS, GRUPO, i, n
+from maxpay.slides import DESTINO as DECK
 
 HTML_SAIDA = DOCS / "GUIA-APRESENTACAO.html"
 PDF_SAIDA = DOCS / "GUIA-APRESENTACAO.pdf"
@@ -142,12 +142,12 @@ def gerar_html(res: dict) -> str:
     ]
 
     return f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>FinalPay: roteiro da apresentação</title>
+<title>MaxPay: roteiro da apresentação</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap">
 <style>{CSS}</style></head><body>
 
-<h1>FinalPay: roteiro da apresentação</h1>
+<h1>MaxPay: roteiro da apresentação</h1>
 <p class="sub">{html.escape(", ".join(GRUPO))}</p>
 <p class="sub">Cibersegurança Aplicada a Dados e IA · CESAR School · Professora Renatta Nigro</p>
 
@@ -174,7 +174,7 @@ dentro do deck: abra <b>docs/slides/index.html</b> e aperte a tecla <b>N</b>.</p
 {"".join(f'<div class="pergunta"><p class="p">{html.escape(p)}</p><p class="r">{html.escape(r)}</p></div>' for p, r in perguntas)}
 
 <p class="rodape">Números da bateria de {res['meta']['gerado_em'].replace('T', ' ')}.
-Avalanche {n(res['diferencial']['fpc_integro']['media_pct'])}% ·
+Avalanche {n(res['diferencial']['mpc_integro']['media_pct'])}% ·
 PSNR {n(est['qualidade']['psnr_db'])} dB ·
 ROC AUC {n(ia['roc_auc'], 4)} ·
 {i(res['bigdata']['resumo']['eventos'])} eventos.</p>
@@ -197,7 +197,7 @@ def _para_pdf(origem: Path, destino: Path) -> bool:
 def main() -> Path:
     res = carregar()
     if res is None:
-        raise SystemExit("Rode `python -m finalpay.experiments` primeiro.")
+        raise SystemExit("Rode `python -m maxpay.experiments` primeiro.")
     DOCS.mkdir(parents=True, exist_ok=True)
     HTML_SAIDA.write_text(gerar_html(res), encoding="utf-8")
     if not _para_pdf(HTML_SAIDA, PDF_SAIDA):

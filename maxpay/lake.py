@@ -1,4 +1,4 @@
-"""Camada de Big Data do FinalPay (etapa 4 da arquitetura).
+"""Camada de Big Data do MaxPay (etapa 4 da arquitetura).
 
 Armazena os eventos em Parquet particionado por dia e consulta com DuckDB.
 A agregacao pesada acontece aqui, em SQL colunar; a camada de IA recebe

@@ -1,6 +1,6 @@
-"""API do FinalPay (etapa 6 da arquitetura: serve o dashboard de seguranca).
+"""API do MaxPay (etapa 6 da arquitetura: serve o dashboard de seguranca).
 
-    uvicorn finalpay.api:app --reload
+    uvicorn maxpay.api:app --reload
 
 Entrega tres coisas:
   * o cofre ao vivo (cifrar, decifrar, ocultar e revelar em imagem);
@@ -25,14 +25,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from finalpay import baseline, cipher, experiments, lake, report, slides, stego
-from finalpay.attacks import brute_force, differential, statistical
-from finalpay.metrics import shannon_entropy
+from maxpay import baseline, cipher, experiments, lake, report, slides, stego
+from maxpay.attacks import brute_force, differential, statistical
+from maxpay.metrics import shannon_entropy
 
 WEB = Path(__file__).resolve().parent.parent / "web"
 MAX_BYTES = 12 * 1024 * 1024
 
-app = FastAPI(title="FinalPay", version="1.0", docs_url="/api/docs")
+app = FastAPI(title="MaxPay", version="1.0", docs_url="/api/docs")
 
 
 @app.middleware("http")
@@ -60,7 +60,7 @@ class PedidoCifrar(BaseModel):
     conteudo_b64: str | None = None
     nome_arquivo: str | None = None
     senha: str = Field(min_length=1)
-    algoritmo: str = "FPC-128"
+    algoritmo: str = "MPC-128"
     modo: str = "CTR"
     rodadas: int = Field(default=cipher.DEFAULT_ROUNDS, ge=1, le=32)
     difusao: bool = True
@@ -178,7 +178,7 @@ def decifrar(p: PedidoDecifrar) -> dict:
         raise HTTPException(400, "informe envelope_b64 ou imagem_b64")
 
     eh_aes = envelope[:6] == baseline.MAGIC
-    algoritmo = "AES-256" if eh_aes else "FPC-128"
+    algoritmo = "AES-256" if eh_aes else "MPC-128"
     try:
         claro = (baseline if eh_aes else cipher).decrypt(envelope, p.senha)
         meta = (baseline if eh_aes else cipher).describe(envelope)
@@ -206,7 +206,7 @@ def decifrar(p: PedidoDecifrar) -> dict:
 @app.get("/api/estego/portadora")
 def estego_portadora(tamanho: int = Query(360, ge=64, le=1024)) -> dict:
     """Imagem de exemplo para quem quer testar a ocultacao sem ter um arquivo."""
-    from finalpay.attacks.statistical import _imagem_estruturada
+    from maxpay.attacks.statistical import _imagem_estruturada
 
     buf = io.BytesIO()
     _imagem_estruturada(tamanho).save(buf, "PNG")
@@ -221,14 +221,14 @@ def estego_portadora(tamanho: int = Query(360, ge=64, le=1024)) -> dict:
 
 @app.get("/api/estego/exemplo")
 def estego_exemplo(
-    senha: str = Query("cofre-finalpay-2026", min_length=1),
+    senha: str = Query("cofre-maxpay-2026", min_length=1),
     tamanho: int = Query(360, ge=64, le=1024),
 ) -> dict:
     """Imagem de exemplo ja com uma mensagem escondida, pronta para revelar.
 
     Serve para demonstrar a extracao sem precisar ter feito a ocultacao antes.
     """
-    from finalpay.attacks.statistical import _imagem_estruturada
+    from maxpay.attacks.statistical import _imagem_estruturada
 
     buf = io.BytesIO()
     _imagem_estruturada(tamanho).save(buf, "PNG")
@@ -236,7 +236,7 @@ def estego_exemplo(
     mensagem = "TX884120 TED R$ 9.350,00 CT7781-4 Bradesco 17/11/2026 APROVADO"
     envelope = cipher.encrypt(mensagem.encode(), senha)
     marcada = stego.embed(portadora, envelope, senha)
-    _registrar("esteganografia", "FPC-128", "sucesso", len(envelope), 0, "exemplo para demonstração")
+    _registrar("esteganografia", "MPC-128", "sucesso", len(envelope), 0, "exemplo para demonstração")
     return {
         "imagem_b64": base64.b64encode(marcada).decode(),
         "portadora_b64": base64.b64encode(portadora).decode(),
@@ -296,7 +296,7 @@ def lab_distinguidor(
 def _resultados() -> dict:
     """Resultados da bateria, recarregados quando o arquivo muda no disco.
 
-    O avaliador pode rodar `python -m finalpay.experiments` noutro terminal com
+    O avaliador pode rodar `python -m maxpay.experiments` noutro terminal com
     o servidor de pe; sem esta checagem a tela continuaria mostrando a bateria
     anterior.
     """
@@ -309,7 +309,7 @@ def _resultados() -> dict:
         _estado["mtime"] = mtime
     if _estado["resultados"] is None:
         raise HTTPException(
-            503, "nenhum resultado disponível: rode `python -m finalpay.experiments` primeiro"
+            503, "nenhum resultado disponível: rode `python -m maxpay.experiments` primeiro"
         )
     return _estado["resultados"]
 
@@ -382,7 +382,7 @@ def relatorio_markdown() -> FileResponse:
     caminho = report.DOCS / "RELATORIO.md"
     if not caminho.exists():
         raise HTTPException(404, "relatório ainda não gerado: use 'Regerar a partir dos dados'")
-    return FileResponse(caminho, media_type="text/markdown", filename="FinalPay-relatorio.md")
+    return FileResponse(caminho, media_type="text/markdown", filename="MaxPay-relatorio.md")
 
 
 @app.get("/api/relatorio/slides")
@@ -407,7 +407,7 @@ def relatorio_regerar() -> dict:
 
 @app.get("/api/saude")
 def saude() -> dict:
-    return {"ok": True, "projeto": "FinalPay", "versao": app.version}
+    return {"ok": True, "projeto": "MaxPay", "versao": app.version}
 
 
 # --------------------------------------------------------------------------

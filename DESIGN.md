@@ -1,5 +1,5 @@
 ---
-name: FinalPay
+name: MaxPay
 description: Cofre criptográfico que mede a própria segurança — dashboard quase monocromático, borda de 1px, número tabular.
 colors:
   branco: "#FFFFFF"
@@ -231,7 +231,7 @@ components:
     padding: "7px 9px"
 ---
 
-# Design System: FinalPay
+# Design System: MaxPay
 
 ## Overview
 

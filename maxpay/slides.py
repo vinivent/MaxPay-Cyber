@@ -7,22 +7,22 @@ Projeto grafico: Swiss design sobre fundo escuro. Campo em doze colunas, tudo
 rente a esquerda, hierarquia por tamanho e peso, filete no lugar de moldura,
 uma unica cor de acento. Nada centralizado, nada decorativo.
 
-    python -m finalpay.slides
+    python -m maxpay.slides
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from finalpay.experiments import carregar
-from finalpay.report import GRUPO, i, n, rot, sci
+from maxpay.experiments import carregar
+from maxpay.report import GRUPO, i, n, rot, sci
 
 DESTINO = Path(__file__).resolve().parent.parent / "docs" / "slides" / "index.html"
 CSS = (Path(__file__).resolve().parent / "slides.css").read_text(encoding="utf-8")
 
 # Preenchido por `notas.py`. Chave = id do slide.
 try:
-    from finalpay.notas import NOTAS
+    from maxpay.notas import NOTAS
 except ImportError:  # notas ainda nao escritas
     NOTAS = {}
 
@@ -87,12 +87,12 @@ def _celula(rotulo: str, valor: str, nota: str = "", cor: str = "") -> str:
 def gerar(res: dict) -> str:
     c = res["cifra"]
     pj = c["projeto"]
-    av = res["diferencial"]["fpc_integro"]
-    fr = res["diferencial"]["fpc_fraco"]
-    sd = res["diferencial"]["fpc_sem_difusao_14_rodadas"]
+    av = res["diferencial"]["mpc_integro"]
+    fr = res["diferencial"]["mpc_fraco"]
+    sd = res["diferencial"]["mpc_sem_difusao_14_rodadas"]
     aes = res["diferencial"]["aes256"]
     perfis = {p["rotulo"]: p for p in res["estatistico"]["perfis"]}
-    ctr, ecb = perfis["fpc_ctr_14_rodadas"], perfis["fpc_ecb_14_rodadas"]
+    ctr, ecb = perfis["mpc_ctr_14_rodadas"], perfis["mpc_ecb_14_rodadas"]
     bf, dic = res["forca_bruta"], res["dicionario"]
     freq_f, freq_c = res["frequencia"]["sem_difusao"], res["frequencia"]["com_difusao"]
     est, bd = res["estego"], res["bigdata"]
@@ -106,7 +106,7 @@ def gerar(res: dict) -> str:
 
     s.append(_slide("capa", "CESAR School · Cibersegurança Aplicada a Dados e IA", f"""
 <div class="sp8">
-  <h1>FinalPay</h1>
+  <h1>MaxPay</h1>
   <p class="lead" style="margin-top:26px;font-size:clamp(17px,1.5vw,24px);color:var(--texto)">
     Um cofre de banco digital que cifra, esconde e observa. E então ataca a si mesmo
     para descobrir se é seguro.</p>
@@ -125,7 +125,7 @@ do dado até o painel de quem vigia.</p></div>""", "ato"))
 
     camadas = [
         ("1", "Entrada de dados", "texto, arquivos e imagens", "aba Cofre"),
-        ("2", "Criptografia", "FPC-128 próprio e AES-256", "aba Cofre"),
+        ("2", "Criptografia", "MPC-128 próprio e AES-256", "aba Cofre"),
         ("3", "Esteganografia", "ocultação em imagem", "aba Ocultar"),
         ("4", "Big Data", "Parquet particionado e DuckDB", "aba Antifraude"),
         ("5", "Inteligência Artificial", "Isolation Forest sobre janelas", "aba Antifraude"),
@@ -147,7 +147,7 @@ do dado até o painel de quem vigia.</p></div>""", "ato"))
 
     s.append(_slide("algoritmo", "Descrição do algoritmo · aba Cofre", f"""
 <div class="sp7">
-  <h2>FPC-128, a cifra que projetamos</h2>
+  <h2>MPC-128, a cifra que projetamos</h2>
   <pre>AddRoundKey   estado ← estado ⊕ subchave[r]
 SubBytes      estado ← S[estado]
 ShiftRows     estado ← estado[π]
@@ -175,7 +175,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   concretos são escolha nossa.</p>
 </div>
 <div class="sp12 linha-acima">
-  <table><thead><tr><th>Componente</th><th>FPC-128</th><th>AES</th><th>Como foi verificado</th></tr></thead><tbody>
+  <table><thead><tr><th>Componente</th><th>MPC-128</th><th>AES</th><th>Como foi verificado</th></tr></thead><tbody>
   <tr><td>Afim da S-box</td><td class="num">{tuple(pj['sbox_rotacoes'])} ⊕ {pj['sbox_constante']}</td>
       <td class="num muted">{tuple(pj['sbox_rotacoes_aes'])} ⊕ {pj['sbox_constante_aes']}</td>
       <td>bijetiva, zero ponto fixo, uniformidade {c['ddt_maximo']}</td></tr>
@@ -213,7 +213,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   posições derivadas da chave. Sem ela, não se sabe nem onde os bits estão.</p>
   <p class="lead">Contra o teste de qui-quadrado de Westfeld, o LSB sequencial clássico acende
   <b>{est['esteganalise']['segmentos_suspeitos']['lsb_sequencial_sem_chave']} de 20</b> segmentos.
-  A versão chaveada acende <b class="destaque">{est['esteganalise']['segmentos_suspeitos']['lsb_chaveado_finalpay']}</b>,
+  A versão chaveada acende <b class="destaque">{est['esteganalise']['segmentos_suspeitos']['lsb_chaveado_maxpay']}</b>,
   igual à imagem limpa.</p>
 </div>
 <div class="sp6">
@@ -255,7 +255,7 @@ que a plateia escolher.</p></div>""", "ato"))
   que uma única rodada.</p>
 </div>
 <div class="sp7">
-  {_barra(f"FPC-128 íntegro", av['media_pct'])}
+  {_barra(f"MPC-128 íntegro", av['media_pct'])}
   {_barra("AES-256 (referência)", aes['media_pct'])}
   {_barra(f"{c['rodadas']} rodadas, sem difusão", sd['media_pct'], fraca=True)}
   {_barra("1 rodada, sem difusão", fr['media_pct'], fraca=True)}
@@ -300,7 +300,7 @@ que a plateia escolher.</p></div>""", "ato"))
   saída que se repita. Numa cifra sólida, nenhuma se repete.</p>
   <table style="margin-top:28px"><thead><tr><th>Variante</th><th class="n">Avalanche</th>
   <th class="n">Saídas distintas</th><th class="n">Repetição máxima</th><th>Distinguível</th></tr></thead><tbody>
-  <tr><td>FPC-128 íntegro</td><td class="n">{n(av['media_pct'])}%</td>
+  <tr><td>MPC-128 íntegro</td><td class="n">{n(av['media_pct'])}%</td>
       <td class="n">{n(di['pct_saidas_distintas'])}%</td><td class="n">{di['ocorrencias']}</td>
       <td><span class="marca marca-ok">não</span></td></tr>
   <tr><td>1 rodada, sem difusão</td><td class="n">{n(fr['media_pct'])}%</td>
@@ -370,18 +370,18 @@ no orçamento de 1% de alertas. Não é cegueira do modelo, é limite de orçame
     s.append(_slide("limites", "Limites", f"""
 <div class="sp5">
   <h2>O que não podemos afirmar</h2>
-  <p class="lead">O FPC-128 passou nos três ataques. Isso demonstra solidez de projeto,
+  <p class="lead">O MPC-128 passou nos três ataques. Isso demonstra solidez de projeto,
   <b>não</b> maturidade criptográfica.</p>
   <p class="lead linha-acima">Uma cifra se torna confiável por anos de tentativa pública de
   quebra, não por uma bateria de testes dos próprios autores. É por isso que a camada AES-256
-  existe no sistema: <b class="destaque">o FPC-128 é o objeto de estudo; o AES-256 é o que
+  existe no sistema: <b class="destaque">o MPC-128 é o objeto de estudo; o AES-256 é o que
   protegeria o dinheiro de verdade.</b></p>
 </div>
 <div class="sp7"><ul>
 {"".join(f"<li>{r}</li>" for r in v["e_seguro"]["ressalvas"])}
 </ul></div>"""))
 
-    s.append(_slide("obrigado", "FinalPay", f"""
+    s.append(_slide("obrigado", "MaxPay", f"""
 <div class="sp8">
   <h1>Obrigado</h1>
   <p class="lead" style="margin-top:30px;font-size:clamp(17px,1.4vw,22px)">Perguntas?</p>
@@ -396,7 +396,7 @@ no orçamento de 1% de alertas. Não é cegueira do modelo, é limite de orçame
     return f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FinalPay: apresentação</title>
+<title>MaxPay: apresentação</title>
 <style>{CSS}</style></head>
 <body><div class="deck">{corpo}</div>
 <div class="progresso" id="progresso"></div>
@@ -407,7 +407,7 @@ no orçamento de 1% de alertas. Não é cegueira do modelo, é limite de orçame
 def main() -> Path:
     res = carregar()
     if res is None:
-        raise SystemExit("Rode `python -m finalpay.experiments` primeiro.")
+        raise SystemExit("Rode `python -m maxpay.experiments` primeiro.")
     DESTINO.parent.mkdir(parents=True, exist_ok=True)
     DESTINO.write_text(gerar(res), encoding="utf-8")
     return DESTINO

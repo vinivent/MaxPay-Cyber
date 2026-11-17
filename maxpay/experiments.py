@@ -1,11 +1,11 @@
-"""Bateria de experimentos do FinalPay.
+"""Bateria de experimentos do MaxPay.
 
 Executa todas as medicoes exigidas pelo projeto e grava `results/experimentos.json`.
 O dashboard, o relatorio e os slides leem desse arquivo: nenhum numero e digitado
 a mao em lugar nenhum.
 
-    python -m finalpay.experiments            # completo
-    python -m finalpay.experiments --rapido   # amostras menores, para iterar
+    python -m maxpay.experiments            # completo
+    python -m maxpay.experiments --rapido   # amostras menores, para iterar
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from finalpay import baseline, detect, events, lake, metrics, stego
-from finalpay.attacks import brute_force, differential, statistical
-from finalpay.cipher import (BLOCK, DEFAULT_ROUNDS, DESLOCAMENTOS, INV_MDS, KDF_ITERATIONS,
+from maxpay import baseline, detect, events, lake, metrics, stego
+from maxpay.attacks import brute_force, differential, statistical
+from maxpay.cipher import (BLOCK, DEFAULT_ROUNDS, DESLOCAMENTOS, INV_MDS, KDF_ITERATIONS,
                              MDS, MODE_CTR, SBOX, SBOX_CONSTANTE, SBOX_ROTACOES, decrypt, encrypt)
 
 RESULTS = Path(__file__).resolve().parent.parent / "results"
@@ -52,21 +52,21 @@ def _throughput(fn, dados: bytes, repeticoes: int = 3) -> float:
 
 def desempenho(tamanho: int = 4_000_000) -> dict:
     dados = os.urandom(tamanho)
-    senha = "cofre-finalpay-2026"
-    fpc = _throughput(lambda d: encrypt(d, senha, mode=MODE_CTR), dados)
+    senha = "cofre-maxpay-2026"
+    mpc = _throughput(lambda d: encrypt(d, senha, mode=MODE_CTR), dados)
     aes = _throughput(lambda d: baseline.encrypt(d, senha), dados)
     return {
         "amostra_mb": round(tamanho / 1e6, 2),
-        "fpc128_mb_por_s": fpc,
+        "mpc128_mb_por_s": mpc,
         "aes256_mb_por_s": aes,
-        "razao_aes_sobre_fpc": round(aes / fpc, 1),
-        "nota": "O AES usa instruções AES-NI do processador; o FPC-128 é Python com numpy puro.",
+        "razao_aes_sobre_mpc": round(aes / mpc, 1),
+        "nota": "O AES usa instruções AES-NI do processador; o MPC-128 é Python com numpy puro.",
     }
 
 
 def propriedades_da_cifra() -> dict:
     ddt = differential.sbox_ddt()
-    senha = "cofre-finalpay-2026"
+    senha = "cofre-maxpay-2026"
     amostra = statistical.sample_ledger(40)
     blob = encrypt(amostra, senha)
     adulterado = bytearray(blob)
@@ -78,7 +78,7 @@ def propriedades_da_cifra() -> dict:
         integridade = True
 
     return {
-        "nome": "FPC-128",
+        "nome": "MPC-128",
         "bloco_bits": BLOCK * 8,
         "chave_bits": 256,
         "rodadas": DEFAULT_ROUNDS,
@@ -117,7 +117,7 @@ def esteganografia(tamanho: int = 384) -> dict:
     img.save(buf, "PNG")
     original = buf.getvalue()
 
-    senha = "cofre-finalpay-2026"
+    senha = "cofre-maxpay-2026"
     carga = encrypt(statistical.sample_ledger(60), senha)
     oculto = stego.embed(original, carga, senha)
     recuperado = stego.extract(oculto, senha)
@@ -150,16 +150,16 @@ def esteganografia(tamanho: int = 384) -> dict:
             "global": {
                 "imagem_limpa": stego.chi_square_attack(original),
                 "lsb_sequencial_sem_chave": stego.chi_square_attack(sequencial),
-                "lsb_chaveado_finalpay": stego.chi_square_attack(chaveado),
+                "lsb_chaveado_maxpay": stego.chi_square_attack(chaveado),
             },
             "varredura": {
                 "imagem_limpa": stego.chi_square_scan(original),
                 "lsb_sequencial_sem_chave": stego.chi_square_scan(sequencial),
-                "lsb_chaveado_finalpay": stego.chi_square_scan(chaveado),
+                "lsb_chaveado_maxpay": stego.chi_square_scan(chaveado),
             },
             "segmentos_suspeitos": {
                 "lsb_sequencial_sem_chave": sum(1 for x in stego.chi_square_scan(sequencial) if x["suspeita"] == "alta"),
-                "lsb_chaveado_finalpay": sum(1 for x in stego.chi_square_scan(chaveado) if x["suspeita"] == "alta"),
+                "lsb_chaveado_maxpay": sum(1 for x in stego.chi_square_scan(chaveado) if x["suspeita"] == "alta"),
                 "imagem_limpa": sum(1 for x in stego.chi_square_scan(original) if x["suspeita"] == "alta"),
             },
         },
@@ -218,12 +218,12 @@ def big_data_e_ia(n_eventos: int, regenerar: bool = True) -> dict:
 
 def _veredito(res: dict) -> dict:
     """Respostas da Parte 4, derivadas dos numeros medidos."""
-    av = res["diferencial"]["fpc_integro"]
-    fraco = res["diferencial"]["fpc_fraco"]
-    sem_dif = res["diferencial"]["fpc_sem_difusao_14_rodadas"]
+    av = res["diferencial"]["mpc_integro"]
+    fraco = res["diferencial"]["mpc_fraco"]
+    sem_dif = res["diferencial"]["mpc_sem_difusao_14_rodadas"]
     perfis = {p["rotulo"]: p for p in res["estatistico"]["perfis"]}
-    ctr = perfis["fpc_ctr_14_rodadas"]
-    ecb = perfis["fpc_ecb_14_rodadas"]
+    ctr = perfis["mpc_ctr_14_rodadas"]
+    ecb = perfis["mpc_ecb_14_rodadas"]
     bruta = res["forca_bruta"]
     freq_forte = res["frequencia"]["com_difusao"]
     freq_fraco = res["frequencia"]["sem_difusao"]
@@ -305,7 +305,7 @@ def _veredito(res: dict) -> dict:
         "ataque_mais_eficaz": {
             "resposta": ranking[0]["ataque"],
             "criterio": "severidade do que o atacante obtém (ler o texto > distinguir a cifra > nada)",
-            "justificativa": "Contra o FPC-128 íntegro nenhum dos três ataques obteve vantagem. Contra a "
+            "justificativa": "Contra o MPC-128 íntegro nenhum dos três ataques obteve vantagem. Contra a "
                              "variante sem difusão, a análise de frequência foi a mais eficaz porque é a única "
                              f"que entrega o conteúdo: recuperou {_n(freq_fraco['acuracia_pct'])}% do texto e "
                              f"expôs {freq_fraco['posicoes_expostas']} das 80 posições do registro sem precisar "
@@ -329,7 +329,7 @@ def _veredito(res: dict) -> dict:
                 "A implementação não é de tempo constante, o que abre risco de ataque por canal lateral de temporização.",
                 "A análise aqui é empírica: não foi feita criptanálise linear nem prova formal de resistência.",
             ],
-            "justificativa": "Dentro do escopo testado, com força bruta, ataque diferencial e análise estatística, o FPC-128 em "
+            "justificativa": "Dentro do escopo testado, com força bruta, ataque diferencial e análise estatística, o MPC-128 em "
                              "modo CTR se comporta como uma cifra moderna e não cedeu a nenhum dos ataques. Isso "
                              "demonstra solidez de projeto, não maturidade criptográfica: a camada AES-256 existe "
                              "justamente para o uso real.",
@@ -345,7 +345,7 @@ def run_all(rapido: bool = False, n_eventos: int | None = None) -> dict:
 
     res: dict = {
         "meta": {
-            "projeto": "FinalPay",
+            "projeto": "MaxPay",
             "gerado_em": datetime.now().isoformat(timespec="seconds"),
             "modo": "rapido" if rapido else "completo",
             "python": sys.version.split()[0],

@@ -33,7 +33,7 @@ que o sistema simula: opera o cofre, revisa alertas e decide o que investigar.
 
 ## Product Purpose
 
-O FinalPay e um cofre criptografico para um banco digital ficticio, construido
+O MaxPay e um cofre criptografico para um banco digital ficticio, construido
 como objeto de estudo: protege transacoes e documentos e, ao mesmo tempo, expoe
 o proprio funcionamento a ataques para que se possa julgar se e seguro.
 
@@ -44,8 +44,8 @@ Parte 4 do enunciado a partir do que esta na tela.
 ## Positioning
 
 A maioria dos trabalhos da disciplina implementa uma cifra OU ataca uma cifra.
-O FinalPay faz as duas coisas sobre a mesma base de codigo e deixa o resultado
-cair de um lado so quando os numeros mandam: a cifra propria FPC-128 convive com
+O MaxPay faz as duas coisas sobre a mesma base de codigo e deixa o resultado
+cair de um lado so quando os numeros mandam: a cifra propria MPC-128 convive com
 uma variante deliberadamente enfraquecida, e os mesmos tres ataques rodam contra
 as duas. O veredito de seguranca e derivado dos experimentos em tempo de
 execucao, nunca digitado a mao.
@@ -53,8 +53,8 @@ execucao, nunca digitado a mao.
 ## Operating Context
 
 - Executado localmente em uma maquina de desenvolvimento (macOS/Linux), via
-  `uvicorn finalpay.api:app`, com os dados ja gerados em `data/lake`.
-- A bateria de experimentos (`python -m finalpay.experiments`) grava
+  `uvicorn maxpay.api:app`, com os dados ja gerados em `data/lake`.
+- A bateria de experimentos (`python -m maxpay.experiments`) grava
   `results/experimentos.json`; dashboard, relatorio e slides leem desse arquivo.
 - Sala de aula com projetor de qualidade incerta: contraste e tamanho de texto
   precisam sobreviver a isso.
@@ -64,7 +64,7 @@ execucao, nunca digitado a mao.
 ## Capabilities and Constraints
 
 Capacidades confirmadas (todas implementadas e medidas):
-- cifragem simetrica propria FPC-128 (SPN, bloco 128 bits, chave 256 bits,
+- cifragem simetrica propria MPC-128 (SPN, bloco 128 bits, chave 256 bits,
   14 rodadas) nos modos CTR autenticado e ECB (este ultimo so para analise);
 - camada AES-256-GCM como algoritmo alternativo e linha de base de comparacao;
 - chave dinamica por mensagem: PBKDF2 + HKDF sobre salt e nonce aleatorios;
@@ -77,7 +77,7 @@ Capacidades confirmadas (todas implementadas e medidas):
   diferencial e estatistico/frequencia.
 
 Restricoes:
-- o FPC-128 e um exercicio academico, nao um algoritmo de producao; isso
+- o MPC-128 e um exercicio academico, nao um algoritmo de producao; isso
   precisa estar dito na propria interface, nao escondido no relatorio;
 - a implementacao nao e de tempo constante (canal lateral de temporizacao);
 - o conjunto de eventos e sintetico, com rotulos conhecidos — e o que torna
@@ -89,7 +89,7 @@ efeito avalanche, difusao, confusao.
 
 ## Brand Commitments
 
-- Nome do produto: **FinalPay**. Definido pelo usuario.
+- Nome do produto: **MaxPay**. Definido pelo usuario.
 - Restricao visual vinculante, nas palavras do usuario: "cores de banco",
   "sobrio e minimalista e ao mesmo tempo moderno". Registrada sem ampliacao.
 - Preferencia permanente, escolhida pelo usuario na rodada de direcao: o

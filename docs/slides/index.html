@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FinalPay: apresentação</title>
+<title>MaxPay: apresentação</title>
 <style>@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
 :root{
   --tinta:#0A0A0C; --superficie:#141418; --superficie-2:#1B1B21;
@@ -145,7 +145,7 @@ body.com-notas .dica{display:none}
 <header class="cab"><span class="secao">CESAR School · Cibersegurança Aplicada a Dados e IA</span><span class="folio">01 / 19</span></header>
 <div class="corpo">
 <div class="sp8">
-  <h1>FinalPay</h1>
+  <h1>MaxPay</h1>
   <p class="lead" style="margin-top:26px;font-size:clamp(17px,1.5vw,24px);color:var(--texto)">
     Um cofre de banco digital que cifra, esconde e observa. E então ataca a si mesmo
     para descobrir se é seguro.</p>
@@ -156,7 +156,7 @@ body.com-notas .dica{display:none}
   <p class="lead" style="margin-top:22px;font-size:14px;color:var(--texto-3)">
     Professora Renatta Nigro</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>O FinalPay é o cofre de transações de um banco digital fictício. A cifra é nossa, escrita do zero. O resultado fica escondido dentro de uma imagem, e o evento vai para um lago de dados vigiado por um modelo. Os ataques rodam contra a cifra íntegra e contra uma variante enfraquecida de propósito.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>O MaxPay é o cofre de transações de um banco digital fictício. A cifra é nossa, escrita do zero. Os ataques contra ela também são nossos, e é o resultado desses ataques que a gente vem mostrar.</p></aside>
 </section>
 <section class="slide ato" data-id="ato1">
 <header class="cab"><span class="secao">Enunciado · partes 1 e 2</span><span class="folio">02 / 19</span></header>
@@ -164,7 +164,7 @@ body.com-notas .dica{display:none}
 <div class="sp9"><span class="ato-num">01</span><h1>O sistema</h1>
 <p class="lead" style="margin-top:28px">Seis camadas que protegem uma transação, da entrada
 do dado até o painel de quem vigia.</p></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>As seis camadas estão na ordem em que uma transação as percorre: alguém digita e o dado é cifrado. Depois pode ser escondido numa imagem, é guardado e lido em massa, é analisado em busca de fraude e aparece no painel. Um ataque em cada ponto só alcança o que a camada anterior entregou.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Uma transação entra pelo formulário, é cifrada, pode ser escondida dentro de uma imagem, vira evento no lago de dados e aparece no painel de quem vigia. São seis camadas, nessa ordem.</p></aside>
 </section>
 <section class="slide " data-id="construido">
 <header class="cab"><span class="secao">Arquitetura</span><span class="folio">03 / 19</span></header>
@@ -178,16 +178,16 @@ do dado até o painel de quem vigia.</p></div></div>
 </div>
 <div class="sp7">
   <table><thead><tr><th>Camada</th><th>O que faz</th><th>Onde se vê</th></tr></thead><tbody>
-  <tr><td><span class="num muted">1</span>&nbsp;&nbsp;<b>Entrada de dados</b></td><td>texto, arquivos e imagens</td><td class="muted">aba Cofre</td></tr><tr><td><span class="num muted">2</span>&nbsp;&nbsp;<b>Criptografia</b></td><td>FPC-128 próprio e AES-256</td><td class="muted">aba Cofre</td></tr><tr><td><span class="num muted">3</span>&nbsp;&nbsp;<b>Esteganografia</b></td><td>ocultação em imagem</td><td class="muted">aba Ocultar</td></tr><tr><td><span class="num muted">4</span>&nbsp;&nbsp;<b>Big Data</b></td><td>Parquet particionado e DuckDB</td><td class="muted">aba Antifraude</td></tr><tr><td><span class="num muted">5</span>&nbsp;&nbsp;<b>Inteligência Artificial</b></td><td>Isolation Forest sobre janelas</td><td class="muted">aba Antifraude</td></tr><tr><td><span class="num muted">6</span>&nbsp;&nbsp;<b>Dashboard</b></td><td>alertas, gráficos e laudo</td><td class="muted">as quatro abas</td></tr>
+  <tr><td><span class="num muted">1</span>&nbsp;&nbsp;<b>Entrada de dados</b></td><td>texto, arquivos e imagens</td><td class="muted">aba Cofre</td></tr><tr><td><span class="num muted">2</span>&nbsp;&nbsp;<b>Criptografia</b></td><td>MPC-128 próprio e AES-256</td><td class="muted">aba Cofre</td></tr><tr><td><span class="num muted">3</span>&nbsp;&nbsp;<b>Esteganografia</b></td><td>ocultação em imagem</td><td class="muted">aba Ocultar</td></tr><tr><td><span class="num muted">4</span>&nbsp;&nbsp;<b>Big Data</b></td><td>Parquet particionado e DuckDB</td><td class="muted">aba Antifraude</td></tr><tr><td><span class="num muted">5</span>&nbsp;&nbsp;<b>Inteligência Artificial</b></td><td>Isolation Forest sobre janelas</td><td class="muted">aba Antifraude</td></tr><tr><td><span class="num muted">6</span>&nbsp;&nbsp;<b>Dashboard</b></td><td>alertas, gráficos e laudo</td><td class="muted">as quatro abas</td></tr>
   </tbody></table>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A versão enfraquecida é a mesma cifra, com a difusão desligada e as rodadas reduzidas. Ela serve de grupo de controle. Se um ataque derruba a fraca e a íntegra aguenta, a resistência vem do desenho, não de um teste mal feito. Os três ataques cifram ali mesmo, com chave sorteada na hora.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Cada camada tem uma aba onde dá para ver funcionando: Cofre, Ocultar, Antifraude e Resistência. Nenhuma tela é maquete. Tudo roda na hora, com os dados e os parâmetros que a senhora escolher.</p></aside>
 </section>
 <section class="slide " data-id="algoritmo">
 <header class="cab"><span class="secao">Descrição do algoritmo · aba Cofre</span><span class="folio">04 / 19</span></header>
 <div class="corpo">
 <div class="sp7">
-  <h2>FPC-128, a cifra que projetamos</h2>
+  <h2>MPC-128, a cifra que projetamos</h2>
   <pre>AddRoundKey   estado ← estado ⊕ subchave[r]
 SubBytes      estado ← S[estado]
 ShiftRows     estado ← estado[π]
@@ -206,7 +206,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   <tr><td>Integridade</td><td class="n">HMAC-SHA256</td></tr>
   </tbody></table>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>O XOR mistura a subchave, a S-box quebra a linearidade, ShiftRows e MixColumns espalham a diferença. Uniformidade diferencial 4 limita cada byte ativo a 2 elevado a menos 6. A difusão obriga vários bytes ativos por rodada, e 14 rodadas deixam margem contra ataque diferencial. Pontos fixos 0: nenhum byte sai igual da S-box.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Cada rodada faz quatro coisas: a subchave entra por XOR, a S-box troca byte por byte, o ShiftRows muda as posições e o MixColumns mistura as colunas. São 14 rodadas, bloco de 128 bits e chave de 256.</p></aside>
 </section>
 <section class="slide " data-id="projeto">
 <header class="cab"><span class="secao">Projeto da cifra</span><span class="folio">05 / 19</span></header>
@@ -218,7 +218,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   concretos são escolha nossa.</p>
 </div>
 <div class="sp12 linha-acima">
-  <table><thead><tr><th>Componente</th><th>FPC-128</th><th>AES</th><th>Como foi verificado</th></tr></thead><tbody>
+  <table><thead><tr><th>Componente</th><th>MPC-128</th><th>AES</th><th>Como foi verificado</th></tr></thead><tbody>
   <tr><td>Afim da S-box</td><td class="num">(0, 1, 2, 3, 5) ⊕ 0x0D</td>
       <td class="num muted">(0, 1, 2, 3, 4) ⊕ 0x63</td>
       <td>bijetiva, zero ponto fixo, uniformidade 4</td></tr>
@@ -235,7 +235,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   <b class="destaque">256 posições</b>. Cada parâmetro saiu de uma busca que só aceitou o que
   passou na verificação matemática.</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A afim com 0x0D, a permutação, a difusão e o escalonamento HKDF/HMAC-SHA256 diferem do AES, e a S-box muda nas 256 posições. Cada escolha passou por verificação: a S-box é bijetiva, com zero ponto fixo e uniformidade 4, e a difusão é MDS por todos os menores.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>A estrutura é da mesma família do AES, e isso é escolha nossa. Nossos também são três componentes: a constante 0x0D da S-box, a permutação (0, 2, 3, 1) e a matriz de difusão (1, 1, 3, 2). Cada um passou por verificação matemática.</p></aside>
 </section>
 <section class="slide " data-id="chave">
 <header class="cab"><span class="secao">Geração dinâmica de chaves · aba Cofre</span><span class="folio">06 / 19</span></header>
@@ -247,11 +247,11 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
 </div>
 <div class="faixa" style="margin-top:34px">
   <div><span class="rotulo">Mesma senha, mesma mensagem</span><span class="grande ">envelopes<br>diferentes</span><p>salt e nonce novos a cada operação</p></div>
-  <div><span class="rotulo">1 bit trocado na chave</span><span class="grande ">50,06%</span><p>dos bits de saída mudam</p></div>
+  <div><span class="rotulo">1 bit trocado na chave</span><span class="grande ">50,00%</span><p>dos bits de saída mudam</p></div>
   <div><span class="rotulo">1 bit alterado no cifrado</span><span class="grande ">recusado</span><p>o HMAC acusa a adulteração</p></div>
   <div><span class="rotulo">Chave guardada em disco</span><span class="grande ">nenhuma</span><p>tudo deriva da senha</p></div>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>As 120.000 iterações do PBKDF2 encarecem o chute de senha, caso alguém leve os envelopes guardados. Em troca, senha perdida é cofre perdido: não existe cópia da chave em disco. Os 50,06% saíram do nosso teste de espalhamento, e metade é o alvo: passar disso não seria melhor.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>A senha vira chave no PBKDF2, com 120.000 iterações, só para encarecer o chute de quem tentar adivinhar. Nada fica guardado em disco. Trocar um bit da chave muda 50,00% dos bits de saída.</p></aside>
 </section>
 <section class="slide " data-id="estego">
 <header class="cab"><span class="secao">Camada 3 · aba Ocultar</span><span class="folio">07 / 19</span></header>
@@ -261,16 +261,16 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   <p class="lead">O envelope cifrado é espalhado pelos bits menos significativos da imagem, em
   posições derivadas da chave. Sem ela, não se sabe nem onde os bits estão.</p>
   <p class="lead">Contra o teste de qui-quadrado de Westfeld, o LSB sequencial clássico acende
-  <b>3 de 20</b> segmentos.
+  <b>2 de 20</b> segmentos.
   A versão chaveada acende <b class="destaque">0</b>,
   igual à imagem limpa.</p>
 </div>
 <div class="sp6">
-  <div class="ficha"><span class="rotulo">PSNR</span><span class="grande destaque">61,71 dB</span><p>acima de 40 dB é imperceptível</p></div>
+  <div class="ficha"><span class="rotulo">PSNR</span><span class="grande destaque">61,68 dB</span><p>acima de 40 dB é imperceptível</p></div>
   <div class="ficha"><span class="rotulo">Desvio máximo por canal</span><span class="medio">1</span><p>de 0 a 255</p></div>
   <div class="ficha"><span class="rotulo">Capacidade da portadora</span><span class="medio">55.286 bytes</span><p>extração com chave errada: rejeitada</p></div>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>O qui-quadrado de Westfeld procura o padrão regular que o LSB sequencial deixa na imagem. Com as posições derivadas da chave, esse padrão não aparece, e o teste não acusa nada. Foi o único detector que rodamos. Contra outros ataques, não temos medida.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Os bits da mensagem vão para posições que só a chave sabe. No teste de Westfeld, o LSB sequencial acende 2 de 20 segmentos e o nosso acende 0, igual à imagem limpa. Foi o único detector que rodamos.</p></aside>
 </section>
 <section class="slide " data-id="antifraude">
 <header class="cab"><span class="secao">Camadas 4 e 5 · aba Antifraude</span><span class="folio">08 / 19</span></header>
@@ -290,7 +290,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
   <p class="lead" style="margin-top:20px;font-size:14px">O posto de risco é o percentil mediano
   no ranking de 43.985 janelas, e não depende do orçamento de alertas.</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>ROC AUC 0,9965 significa que uma janela de ataque quase sempre aparece acima de uma janela normal no ranking. Surto de eventos tem revocação 4,3% com posto de risco 1,69%: metade dessas 23 janelas está ainda mais perto do topo das 43.985, e mesmo assim fora do orçamento de alertas.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>O modelo treinou sem rótulo nenhum e mesmo assim separa quase tudo: ROC AUC 0,9965. O surto de eventos é a exceção, com 4,3% de revocação. Ele não passa batido, fica no 1,69% mais arriscado, mas não cabe no orçamento de alertas.</p></aside>
 </section>
 <section class="slide ato" data-id="ato2">
 <header class="cab"><span class="secao">Enunciado · parte 3 · aba Resistência</span><span class="folio">09 / 19</span></header>
@@ -299,7 +299,7 @@ MixColumns    estado ← M · estado  em GF(2⁸)</pre>
 <p class="lead" style="margin-top:28px">Três ataques contra duas versões da mesma cifra: a íntegra
 e uma enfraquecida de propósito. Todos rodam ao vivo na aba Resistência, com os parâmetros
 que a plateia escolher.</p></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A versão enfraquecida é o grupo de controle. Se um ataque derruba a fraca e não a íntegra, a resistência vem do desenho da cifra, e não de um defeito do teste. A força bruta contra a chave é exceção: não quebra nenhuma das duas, porque o tamanho da chave não depende das rodadas.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Atacamos a cifra em duas versões: a íntegra e uma com a difusão desligada. A fraca é o grupo de controle. Quando o ataque derruba só ela, a diferença está no desenho e não no teste.</p></aside>
 </section>
 <section class="slide " data-id="avalanche">
 <header class="cab"><span class="secao">Enunciado · parte 4 · efeito avalanche</span><span class="folio">10 / 19</span></header>
@@ -309,19 +309,19 @@ que a plateia escolher.</p></div></div>
   <p class="lead">Um bit alterado na entrada deve alterar metade da saída. A difusão se completa
   na rodada <b>2</b> e a cifra usa <b>14</b>.</p>
   <p class="lead linha-acima"><b>Rodadas não compensam a falta de difusão.</b>
-  14 rodadas sem MixColumns entregam 3,13%, praticamente o mesmo
+  14 rodadas sem MixColumns entregam 3,15%, praticamente o mesmo
   que uma única rodada.</p>
 </div>
 <div class="sp7">
-  <div class="barra"><span class="rotulo">FPC-128 íntegro</span><span class="trilho"><span class="preenche" style="width:83.5%"></span></span><span class="valor">50,11%</span></div>
-  <div class="barra"><span class="rotulo">AES-256 (referência)</span><span class="trilho"><span class="preenche" style="width:83.3%"></span></span><span class="valor">50,01%</span></div>
-  <div class="barra"><span class="rotulo">14 rodadas, sem difusão</span><span class="trilho"><span class="preenche fraca" style="width:5.2%"></span></span><span class="valor">3,13%</span></div>
-  <div class="barra"><span class="rotulo">1 rodada, sem difusão</span><span class="trilho"><span class="preenche fraca" style="width:5.2%"></span></span><span class="valor">3,09%</span></div>
+  <div class="barra"><span class="rotulo">MPC-128 íntegro</span><span class="trilho"><span class="preenche" style="width:83.5%"></span></span><span class="valor">50,08%</span></div>
+  <div class="barra"><span class="rotulo">AES-256 (referência)</span><span class="trilho"><span class="preenche" style="width:83.5%"></span></span><span class="valor">50,08%</span></div>
+  <div class="barra"><span class="rotulo">14 rodadas, sem difusão</span><span class="trilho"><span class="preenche fraca" style="width:5.2%"></span></span><span class="valor">3,15%</span></div>
+  <div class="barra"><span class="rotulo">1 rodada, sem difusão</span><span class="trilho"><span class="preenche fraca" style="width:5.2%"></span></span><span class="valor">3,10%</span></div>
   <p class="lead" style="margin-top:26px;font-size:14px">Desvio padrão medido
-  5,698, contra 5,657
+  5,560, contra 5,657
   esperado de uma binomial(128; 0,5).</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A FPC-128 íntegra vira 50,11% dos bits, contra 50,01% do AES-256. O MixColumns é quem espalha o bit: sem ele, 14 rodadas param em 3,13% e uma rodada dá 3,09%. A difusão fecha na rodada 2, e o resto das 14 é margem. O desvio medido, 5,698, casa com o 5,657 esperado.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Um bit na entrada muda 50,08% da saída, o mesmo que o AES-256 deu aqui, 50,08%. Sem o MixColumns cai para 3,15%, e com uma rodada só dá 3,10%. Rodada a mais não substitui difusão.</p></aside>
 </section>
 <section class="slide " data-id="padroes">
 <header class="cab"><span class="secao">Enunciado · parte 4 · padrões na saída</span><span class="folio">11 / 19</span></header>
@@ -330,32 +330,32 @@ que a plateia escolher.</p></div></div>
 <div class="sp12">
   <table><thead><tr><th>Amostra</th><th class="n">Entropia</th><th class="n">χ² (p)</th>
   <th class="n">Índice de coincidência</th><th class="n">Blocos repetidos</th></tr></thead><tbody>
-  <tr><td>Texto claro</td><td class="n">4,3129</td><td class="n">0,0000</td><td class="n">0,116338</td><td class="n">36,11%</td></tr><tr><td>FPC-128 · CTR, 14 rodadas</td><td class="n">7,9985</td><td class="n">0,6823</td><td class="n">0,003906</td><td class="n">0,00%</td></tr><tr><td>FPC-128 · ECB, 14 rodadas</td><td class="n">7,8959</td><td class="n">0,0000</td><td class="n">0,004572</td><td class="n">36,10%</td></tr><tr><td>FPC-128 · ECB, 1 rodada, sem difusão</td><td class="n">6,5870</td><td class="n">0,0000</td><td class="n">0,015242</td><td class="n">36,11%</td></tr><tr><td>AES-256-GCM</td><td class="n">7,9984</td><td class="n">0,4132</td><td class="n">0,003906</td><td class="n">0,00%</td></tr><tr><td>/dev/urandom (controle)</td><td class="n">7,9984</td><td class="n">0,3133</td><td class="n">0,003907</td><td class="n">0,00%</td></tr>
+  <tr><td>Texto claro</td><td class="n">4,3129</td><td class="n">0,0000</td><td class="n">0,116338</td><td class="n">36,11%</td></tr><tr><td>MPC-128 · CTR, 14 rodadas</td><td class="n">7,9981</td><td class="n">0,0101</td><td class="n">0,003908</td><td class="n">0,00%</td></tr><tr><td>MPC-128 · ECB, 14 rodadas</td><td class="n">7,9060</td><td class="n">0,0000</td><td class="n">0,004490</td><td class="n">36,10%</td></tr><tr><td>MPC-128 · ECB, 1 rodada, sem difusão</td><td class="n">6,5748</td><td class="n">0,0000</td><td class="n">0,016021</td><td class="n">36,11%</td></tr><tr><td>AES-256-GCM</td><td class="n">7,9983</td><td class="n">0,1601</td><td class="n">0,003907</td><td class="n">0,00%</td></tr><tr><td>/dev/urandom (controle)</td><td class="n">7,9984</td><td class="n">0,4258</td><td class="n">0,003906</td><td class="n">0,00%</td></tr>
   </tbody></table>
   <p class="lead linha-acima">No modo CTR a saída é <b>indistinguível de ruído do sistema
   operacional</b>. No modo ECB, 36,10% dos blocos se repetem
   mesmo com 14 rodadas: <b class="destaque">o modo pesa mais que as rodadas</b>.</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>Em CTR o p do qui-quadrado é 0,6823. O AES-256-GCM deu 0,4132 e o /dev/urandom de controle deu 0,3133; nenhum dos três rejeita uniformidade. O teste mede distribuição, não resistência a ataque. Em ECB bloco igual na entrada vira bloco igual na saída, e 14 rodadas ainda deixam 36,10% de blocos repetidos.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Em CTR a saída não tem bloco repetido e a entropia chega a 7,9981 de 8. Em ECB, bloco igual na entrada sai igual: 36,10% repetidos, mesmo com 14 rodadas. O modo pesa mais que as rodadas.</p></aside>
 </section>
 <section class="slide " data-id="bruta">
 <header class="cab"><span class="secao">Ataque 1 · aba Resistência</span><span class="folio">12 / 19</span></header>
 <div class="corpo">
 <div class="sp12"><h2>Força bruta</h2></div>
 <div class="faixa">
-  <div><span class="rotulo">Taxa medida</span><span class="grande ">106.935</span><p>chaves por segundo, 1 núcleo</p></div>
+  <div><span class="rotulo">Taxa medida</span><span class="grande ">113.089</span><p>chaves por segundo, 1 núcleo</p></div>
   <div><span class="rotulo">Espaço de chaves</span><span class="grande ">2²⁵⁶</span><p>não depende das rodadas</p></div>
-  <div><span class="rotulo">Com 1 milhão de GPUs</span><span class="grande destaque">1,716×10⁵⁸ anos</span><p>1,24×10⁴⁸ vezes a idade do universo</p></div>
+  <div><span class="rotulo">Com 1 milhão de GPUs</span><span class="grande destaque">1,622×10⁵⁸ anos</span><p>1,18×10⁴⁸ vezes a idade do universo</p></div>
   <div><span class="rotulo">Veredito</span><span class="grande ">inviável</span><p><span class='marca marca-ok'>a cifra resistiu</span></p></div>
 </div>
 <div class="sp12 linha-acima">
   <p class="lead">Contra a <b>senha</b>, porém, a história muda: o PBKDF2 limita o atacante a
-  114,6 tentativas por segundo. A senha fraca
+  115,3 tentativas por segundo. A senha fraca
   <span class="num">banco123</span> caiu em 0,06 s; uma senha forte
-  de 12 caracteres levaria 6,581×10¹³ anos.
+  de 12 caracteres levaria 6,537×10¹³ anos.
   <b class="destaque">O elo mais fraco é a senha, não a cifra.</b></p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>Um espaço de 2 elevado a 256 é igual em qualquer cifra de 256 bits, então esse número não avalia o nosso desenho. O PBKDF2 limita o atacante a 114,6 tentativas por segundo. Com isso a defesa real é a senha: banco123 cai em 0,06 s, uma de 12 caracteres resiste.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>1,622×10⁵⁸ anos com um milhão de GPUs. Mas esse número vale para qualquer cifra de 256 bits. O resultado útil é o de baixo: o PBKDF2 limita o atacante a 115,3 tentativas por segundo, e a senha banco123 caiu em 0,06 s.</p></aside>
 </section>
 <section class="slide " data-id="diferencial">
 <header class="cab"><span class="secao">Ataque 2 · aba Resistência</span><span class="folio">13 / 19</span></header>
@@ -366,18 +366,18 @@ que a plateia escolher.</p></div></div>
   saída que se repita. Numa cifra sólida, nenhuma se repete.</p>
   <table style="margin-top:28px"><thead><tr><th>Variante</th><th class="n">Avalanche</th>
   <th class="n">Saídas distintas</th><th class="n">Repetição máxima</th><th>Distinguível</th></tr></thead><tbody>
-  <tr><td>FPC-128 íntegro</td><td class="n">50,11%</td>
+  <tr><td>MPC-128 íntegro</td><td class="n">50,08%</td>
       <td class="n">100,00%</td><td class="n">1</td>
       <td><span class="marca marca-ok">não</span></td></tr>
-  <tr><td>1 rodada, sem difusão</td><td class="n">3,09%</td>
-      <td class="n">0,13%</td><td class="n">1.536</td>
+  <tr><td>1 rodada, sem difusão</td><td class="n">3,10%</td>
+      <td class="n">0,13%</td><td class="n">1.543</td>
       <td><span class="marca marca-crit">sim</span></td></tr>
   </tbody></table>
   <p class="lead linha-acima">A S-box tem uniformidade diferencial 4: nenhuma
   característica de uma rodada passa de 2⁻⁶ de probabilidade. Ao longo de 14 rodadas,
   nada explorável sobra.</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>Repetição máxima 1 significa que nenhuma diferença de saída apareceu duas vezes. Sem difusão, a diferença mais frequente aparece 1.536 vezes, e esse viés já separa a cifra de uma função aleatória. Com uniformidade diferencial 4, as 14 rodadas levam a probabilidade para fora do alcance prático. Isso cobre apenas o ataque diferencial.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Na cifra íntegra nenhuma diferença de saída repetiu: 100,00% distintas. Na versão sem difusão, a mais frequente apareceu 1.543 vezes. Esse viés é exatamente o que um ataque diferencial procura.</p></aside>
 </section>
 <section class="slide " data-id="estatistico">
 <header class="cab"><span class="secao">Ataque 3 · aba Resistência</span><span class="folio">14 / 19</span></header>
@@ -389,15 +389,15 @@ que a plateia escolher.</p></div></div>
 </div>
 <div class="sp12" style="margin-top:26px">
 <pre>original    TX473188 BOLETO  R$    47523.68 CT1313-1 Inter     2026-11-27
-recuperado  <b>TR686049 BEBETO  X     1550b.38 CT4015-3 SBn10    $2026-11 03</b></pre>
+recuperado  <b>TX686049 BEBETO  R     1550b.38 CT4085-3 SBn10    $2026-11 03</b></pre>
 </div>
 <div class="faixa" style="margin-top:30px">
-  <div><span class="rotulo">Sem difusão</span><span class="grande vermelho">60,15%</span><p>do texto recuperado</p></div>
-  <div><span class="rotulo">Posições expostas</span><span class="grande vermelho">38/80</span><p>do registro bancário</p></div>
-  <div><span class="rotulo">Com difusão</span><span class="grande verde">4,29%</span><p>abaixo da linha de base de 31,26%</p></div>
+  <div><span class="rotulo">Sem difusão</span><span class="grande vermelho">62,78%</span><p>do texto recuperado</p></div>
+  <div><span class="rotulo">Posições expostas</span><span class="grande vermelho">40/80</span><p>do registro bancário</p></div>
+  <div><span class="rotulo">Com difusão</span><span class="grande verde">4,59%</span><p>abaixo da linha de base de 31,26%</p></div>
   <div><span class="rotulo">Chave usada</span><span class="grande ">nenhuma</span><p>só a frequência dos bytes</p></div>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A contagem de bytes dispensa chave: trabalha só sobre o texto cifrado. Sem difusão, cada posição do bloco guarda um alfabeto próprio, e caem 38 das 80 posições, 60,15% do texto. Com difusão a recuperação desce para 4,29%, abaixo da linha de base de 31,26%. Sobra o formato, não o valor nem a conta.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Esse ataque não usa chave, só conta bytes. Sem difusão ele devolve 62,78% do texto e abre 40 das 80 posições do registro. Com difusão cai para 4,59%, abaixo da linha de base de 31,26%.</p></aside>
 </section>
 <section class="slide ato" data-id="ato3">
 <header class="cab"><span class="secao">Enunciado · parte 4</span><span class="folio">15 / 19</span></header>
@@ -405,7 +405,7 @@ recuperado  <b>TR686049 BEBETO  X     1550b.38 CT4015-3 SBn10    $2026-11 03</b>
 <div class="sp9"><span class="ato-num">03</span><h1>O veredito</h1>
 <p class="lead" style="margin-top:28px">O que os números respondem, e o que eles não
 autorizam a afirmar.</p></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>Quem atacou a cifra foi a nossa própria equipe. Ninguém de fora tentou quebrá-la. Ela resistiu aos ataques que nós conseguimos imaginar, e isso não é o mesmo que resistir aos ataques que existem. Fora dessa lista, não temos resultado nenhum para mostrar.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Agora as quatro perguntas do enunciado, cada uma com o número que sustenta a resposta. Depois vem o que esses números não autorizam a gente a afirmar, porque quem atacou a cifra fomos nós mesmos.</p></aside>
 </section>
 <section class="slide " data-id="perguntas">
 <header class="cab"><span class="secao">Enunciado · parte 4 · as respostas</span><span class="folio">16 / 19</span></header>
@@ -413,14 +413,14 @@ autorizam a afirmar.</p></div></div>
 <div class="sp12"><h2>As quatro perguntas</h2></div>
 <div class="sp6 ficha"><span class="rotulo">O sistema apresenta efeito avalanche?</span>
 <span style="display:block;font-size:clamp(22px,2.3vw,34px);font-weight:600;letter-spacing:-.03em;margin:4px 0 12px">Sim</span>
-<p>50,11% dos bits, contra 50% ideal</p></div><div class="sp6 ficha"><span class="rotulo">Existem padrões na saída?</span>
+<p>50,08% dos bits, contra 50% ideal</p></div><div class="sp6 ficha"><span class="rotulo">Existem padrões na saída?</span>
 <span style="display:block;font-size:clamp(22px,2.3vw,34px);font-weight:600;letter-spacing:-.03em;margin:4px 0 12px">Não</span>
-<p>entropia 7,9985 bits por byte</p></div><div class="sp6 ficha"><span class="rotulo">Qual ataque foi mais eficaz?</span>
+<p>entropia 7,9981 bits por byte</p></div><div class="sp6 ficha"><span class="rotulo">Qual ataque foi mais eficaz?</span>
 <span style="display:block;font-size:clamp(22px,2.3vw,34px);font-weight:600;letter-spacing:-.03em;margin:4px 0 12px">Estatístico / análise de frequência</span>
-<p>recuperou 60,15% do texto da variante sem difusão</p></div><div class="sp6 ficha"><span class="rotulo">O sistema é seguro?</span>
+<p>recuperou 62,78% do texto da variante sem difusão</p></div><div class="sp6 ficha"><span class="rotulo">O sistema é seguro?</span>
 <span style="display:block;font-size:clamp(22px,2.3vw,34px);font-weight:600;letter-spacing:-.03em;margin:4px 0 12px">Sim, com ressalvas</span>
-<p>força bruta inviável por 1,716×10⁵⁸ anos</p></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A análise de frequência devolveu 60,15% do texto claro sem precisar de chave nenhuma, e só contra a variante sem difusão. Na cifra íntegra, nenhum ataque teve vantagem. Os 1,716 vezes 10 elevado a 58 anos de força bruta protegem a chave, não as escolhas de projeto.</p></aside>
+<p>força bruta inviável por 1,622×10⁵⁸ anos</p></div></div>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Avalanche sim, 50,08% dos bits. Padrões não, entropia 7,9981 de 8. O ataque mais eficaz foi o estatístico, que recuperou 62,78% do texto da variante fraca. Seguro sim, com ressalvas.</p></aside>
 </section>
 <section class="slide " data-id="conclusao">
 <header class="cab"><span class="secao">Conclusão</span><span class="folio">17 / 19</span></header>
@@ -428,7 +428,7 @@ autorizam a afirmar.</p></div></div>
 <div class="sp12"><h2>O que os números ensinam</h2></div>
 <div class="sp6"><ul>
 <li><b>Difusão é o que sustenta tudo.</b> Sem MixColumns, a análise de frequência recupera
-60,15% do texto e expõe 38 das
+62,78% do texto e expõe 40 das
 80 posições do registro. Aumentar rodadas não corrige.</li>
 <li><b>O modo de operação pesa mais que o número de rodadas.</b> O ECB preservou
 36,10% dos blocos repetidos com a cifra íntegra.</li>
@@ -440,27 +440,27 @@ senha, e o PBKDF2 existe para encarecê-la.</li>
 volume: o modelo o põe no 1,69% mais arriscado, mas ele não cabe
 no orçamento de 1% de alertas. Não é cegueira do modelo, é limite de orçamento.</li>
 </ul></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>Sem MixColumns, nenhuma rodada extra devolve a difusão que falta. No ECB a cifra estava íntegra, e o que faltou foi o modo de operação. O limite de 1% de alertas foi nossa escolha; com ele, o surto fica no 1,69% mais arriscado e passa sem alerta.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>Difusão é o que sustenta tudo: sem ela a frequência devolve 62,78% do texto. O modo de operação pesa mais que o número de rodadas. Força bruta é o ataque errado, porque a superfície real é a senha. E a anomalia mais difícil é a que não quebra nada.</p></aside>
 </section>
 <section class="slide " data-id="limites">
 <header class="cab"><span class="secao">Limites</span><span class="folio">18 / 19</span></header>
 <div class="corpo">
 <div class="sp5">
   <h2>O que não podemos afirmar</h2>
-  <p class="lead">O FPC-128 passou nos três ataques. Isso demonstra solidez de projeto,
+  <p class="lead">O MPC-128 passou nos três ataques. Isso demonstra solidez de projeto,
   <b>não</b> maturidade criptográfica.</p>
   <p class="lead linha-acima">Uma cifra se torna confiável por anos de tentativa pública de
   quebra, não por uma bateria de testes dos próprios autores. É por isso que a camada AES-256
-  existe no sistema: <b class="destaque">o FPC-128 é o objeto de estudo; o AES-256 é o que
+  existe no sistema: <b class="destaque">o MPC-128 é o objeto de estudo; o AES-256 é o que
   protegeria o dinheiro de verdade.</b></p>
 </div>
 <div class="sp7"><ul>
 <li>Cifra própria sem análise pública: a estrutura vem da mesma família do AES, mas S-box, matriz de difusão e permutação são escolhas nossas e nunca passaram por criptanálise independente. Em produção, use AES-256.</li><li>O modo ECB continua vazando estrutura mesmo com 14 rodadas: apenas o modo CTR autenticado deve ser usado.</li><li>A implementação não é de tempo constante, o que abre risco de ataque por canal lateral de temporização.</li><li>A análise aqui é empírica: não foi feita criptanálise linear nem prova formal de resistência.</li>
 </ul></div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>A S-box, a matriz de difusão e a permutação nunca foram avaliadas por gente de fora. Os três ataques foram os nossos, e teste de quem projeta não vale como criptanálise. O tempo de execução varia, o que entrega informação sobre a chave. No produto, quem protege o dado é o AES-256.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>A S-box, a matriz de difusão e a permutação são escolhas nossas e nunca passaram por criptanálise de gente de fora. A implementação também não é de tempo constante. Em produção, quem protege o dinheiro é o AES-256.</p></aside>
 </section>
 <section class="slide capa" data-id="obrigado">
-<header class="cab"><span class="secao">FinalPay</span><span class="folio">19 / 19</span></header>
+<header class="cab"><span class="secao">MaxPay</span><span class="folio">19 / 19</span></header>
 <div class="corpo">
 <div class="sp8">
   <h1>Obrigado</h1>
@@ -470,7 +470,7 @@ no orçamento de 1% de alertas. Não é cegueira do modelo, é limite de orçame
   <span class="rotulo">Grupo</span>
   <p class="lead" style="font-size:15px;line-height:1.9">Claudio Alves<br>Ian Nunes<br>Maria Augusta<br>Gabriel Lima<br>Gabriel Rodrigues<br>Vinicius Ventura</p>
 </div></div>
-<aside class="notas"><span class="rotulo">Para falar</span><p>O FinalPay cifra a transação, esconde o envelope numa imagem e detecta anomalias. Depois o próprio grupo o atacou. Nós escolhemos esses ataques, então eles não medem o que um atacante de fora tentaria. Cada integrante responde pela parte que fez, e preferimos as perguntas que apontam o que ficou fraco.</p></aside>
+<aside class="notas"><span class="rotulo">Para falar</span><p>O trabalho foi dividido entre os nomes da tela, e cada um responde pela parte que fez. As perguntas que mais ajudam a gente são as que apontam o que ficou fraco, então pode vir.</p></aside>
 </section></div>
 <div class="progresso" id="progresso"></div>
 <div class="dica">← → navega · N notas · P imprime</div>

@@ -1,4 +1,4 @@
-/* FinalPay, dashboard.
+/* MaxPay, dashboard.
    Busca os resultados medidos pela bateria e os desenha. Nenhum numero e
    escrito aqui: tudo vem de results/experimentos.json via API. */
 
@@ -35,7 +35,7 @@ const carregando = (alvo, texto = 'Carregando') =>
 const falha = (alvo, erro) =>
   (alvo.innerHTML = `<div class="note note-warn"><svg><use href="#ic-alert"/></svg><div>
     <b>Não foi possível carregar.</b> ${esc(erro.message)}<br>
-    Rode <code>python -m finalpay.experiments</code> e recarregue a página.</div></div>`);
+    Rode <code>python -m maxpay.experiments</code> e recarregue a página.</div></div>`);
 
 function tag(texto, tipo = '') { return `<span class="tag ${tipo}">${esc(texto)}</span>`; }
 
@@ -347,7 +347,7 @@ $('#btn-decifrar').addEventListener('click', async () => {
         <svg><use href="#ic-info"/></svg><div><b>Integridade verificada.</b>
         ${ni(d.bytes)} bytes recuperados em ${nf(d.latencia_ms)} ms.</div></div>
       ${d.texto !== null ? `<pre class="code wrap" style="margin-top:12px">${esc(d.texto.slice(0, 1200))}</pre>`
-        : `<p class="small" style="margin-top:12px">Conteúdo binário. <a download="finalpay.bin" href="data:application/octet-stream;base64,${d.conteudo_b64}">Baixar arquivo</a>.</p>`}`;
+        : `<p class="small" style="margin-top:12px">Conteúdo binário. <a download="maxpay.bin" href="data:application/octet-stream;base64,${d.conteudo_b64}">Baixar arquivo</a>.</p>`}`;
   } catch (e) {
     saida.innerHTML = `<div class="note note-warn"><svg><use href="#ic-alert"/></svg>
       <div><b>Recusado.</b> ${esc(e.message)}</div></div>`;
@@ -461,7 +461,7 @@ $('#btn-ocultar').addEventListener('click', async (ev) => {
           <div class="row">
             <button class="btn btn-primary" id="btn-comparar">
               <svg><use href="#ic-image"/></svg>Comparar em tela cheia</button>
-            <a class="btn" download="finalpay-oculto.png" href="data:image/png;base64,${e.imagem_b64}">
+            <a class="btn" download="maxpay-oculto.png" href="data:image/png;base64,${e.imagem_b64}">
               <svg><use href="#ic-download"/></svg>Baixar imagem</a>
             <span class="meta">as setas alternam entre antes e depois sem mover a imagem</span>
           </div>
@@ -485,7 +485,7 @@ $('#btn-rev-exemplo').addEventListener('click', async (ev) => {
   erro.textContent = '';
   btn.disabled = true;
   try {
-    const senha = $('#rev-senha').value || 'cofre-finalpay-2026';
+    const senha = $('#rev-senha').value || 'cofre-maxpay-2026';
     const d = await api(`/api/estego/exemplo?senha=${encodeURIComponent(senha)}`);
     exemploRevelar = d.imagem_b64;
     lupa.antes = d.portadora_b64;

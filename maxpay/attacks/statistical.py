@@ -2,7 +2,7 @@
 
 Tres frentes:
   1. `statistical_profile`  - perfil de entropia, qui-quadrado, IC e testes NIST
-                              para texto claro, FPC-128 integro, variante fraca e AES-256.
+                              para texto claro, MPC-128 integro, variante fraca e AES-256.
   2. `frequency_attack`     - recuperacao de texto por analise de frequencia,
                               explorando o fato de que a variante sem difusao e
                               uma substituicao com periodo de 16 bytes.
@@ -18,9 +18,9 @@ import os
 import numpy as np
 from PIL import Image, ImageDraw
 
-from finalpay import baseline
-from finalpay.cipher import BLOCK, DEFAULT_ROUNDS, MODE_CTR, MODE_ECB, SHIFT_ROWS, FinalPayCipher, encrypt
-from finalpay.metrics import block_repetition, full_profile
+from maxpay import baseline
+from maxpay.cipher import BLOCK, DEFAULT_ROUNDS, MODE_CTR, MODE_ECB, SHIFT_ROWS, MaxPayCipher, encrypt
+from maxpay.metrics import block_repetition, full_profile
 
 BANCOS = ["Itau", "Bradesco", "Caixa", "Santander", "Nubank", "BB", "Inter", "Safra"]
 TIPOS = ["PIX", "TED", "DOC", "BOLETO", "DEBITO", "CREDITO"]
@@ -57,20 +57,20 @@ def sample_ledger(linhas: int = 400, semente: int = 1) -> bytes:
 def _ecb(data: bytes, chave: bytes, rounds: int, diffusion: bool) -> bytes:
     resto = (-len(data)) % BLOCK
     blocos = np.frombuffer(data + b"\x00" * resto, dtype=np.uint8).reshape(-1, BLOCK)
-    return FinalPayCipher(chave, rounds, diffusion).encrypt_blocks(blocos).tobytes()
+    return MaxPayCipher(chave, rounds, diffusion).encrypt_blocks(blocos).tobytes()
 
 
 def statistical_profile(linhas: int = 1200) -> dict:
     """Perfil estatistico comparado das varias cifragens do mesmo texto."""
     claro = sample_ledger(linhas)
-    senha = "cofre-finalpay-2026"
+    senha = "cofre-maxpay-2026"
     chave = os.urandom(32)
 
     amostras = {
         "texto_claro": claro,
-        "fpc_ctr_14_rodadas": encrypt(claro, senha, mode=MODE_CTR)[45:-32],
-        "fpc_ecb_14_rodadas": encrypt(claro, senha, mode=MODE_ECB)[45:-32],
-        "fpc_ecb_1_rodada_sem_difusao": _ecb(claro, chave, 1, False),
+        "mpc_ctr_14_rodadas": encrypt(claro, senha, mode=MODE_CTR)[45:-32],
+        "mpc_ecb_14_rodadas": encrypt(claro, senha, mode=MODE_ECB)[45:-32],
+        "mpc_ecb_1_rodada_sem_difusao": _ecb(claro, chave, 1, False),
         "aes256_gcm": baseline.encrypt(claro, senha)[42:],
         "urandom": os.urandom(len(claro)),
     }
@@ -163,7 +163,7 @@ def _imagem_estruturada(tamanho: int = 256) -> Image.Image:
     d.rectangle([0, 0, tamanho, 54], fill=(16, 28, 48))
     d.rectangle([24, 92, tamanho - 24, 150], fill=(16, 28, 48))
     d.ellipse([96, 176, 160, 240], fill=(0, 102, 204))
-    d.text((70, 20), "FINALPAY", fill=(255, 255, 255))
+    d.text((70, 20), "MAXPAY", fill=(255, 255, 255))
     d.text((40, 112), "COFRE  CRIPTOGRAFICO", fill=(255, 255, 255))
     return img
 
@@ -185,7 +185,7 @@ def ecb_pattern_demo(tamanho: int = 256) -> dict:
     shape = raw.shape
     data = raw.tobytes()
     chave = os.urandom(32)
-    senha = "cofre-finalpay-2026"
+    senha = "cofre-maxpay-2026"
 
     variantes = {
         "original": data,

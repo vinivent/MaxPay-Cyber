@@ -1,4 +1,4 @@
-"""FPC-128: cifra de bloco do FinalPay (rede SPN, blocos de 128 bits).
+"""MPC-128: cifra de bloco do MaxPay (rede SPN, blocos de 128 bits).
 
 Projeto proprio dentro de uma familia conhecida. A estrutura (SPN com S-box
 baseada em inverso multiplicativo, permutacao de bytes e difusao por matriz MDS)
@@ -48,7 +48,7 @@ SBOX_CONSTANTE = 0x0D
 DESLOCAMENTOS = (0, 2, 3, 1)
 MDS = (1, 1, 3, 2)
 INV_MDS = (11, 14, 9, 13)
-MAGIC = b"FPAY01"
+MAGIC = b"MPAY01"
 HEADER = struct.Struct(">6sBBB16s12sQ")  # magic, modo, rodadas, flags, salt, nonce, tamanho
 TAG_LEN = 32
 KDF_ITERATIONS = 120_000
@@ -175,20 +175,20 @@ def derive_keys(secret: str | bytes, salt: bytes, nonce: bytes) -> tuple[bytes, 
     """Material de chave da mensagem: (chave de cifragem, chave de integridade)."""
     raw = secret.encode() if isinstance(secret, str) else secret
     master = hashlib.pbkdf2_hmac("sha256", raw, salt, KDF_ITERATIONS, dklen=32)
-    material = _hkdf(master, b"finalpay/v1/" + nonce, 64)
+    material = _hkdf(master, b"maxpay/v1/" + nonce, 64)
     return material[:32], material[32:]
 
 
 def expand_round_keys(enc_key: bytes, rounds: int) -> np.ndarray:
     """Subchaves de rodada: array (rounds + 1, 16)."""
-    raw = _hkdf(enc_key, b"finalpay/v1/rk/%d" % rounds, (rounds + 1) * BLOCK)
+    raw = _hkdf(enc_key, b"maxpay/v1/rk/%d" % rounds, (rounds + 1) * BLOCK)
     return np.frombuffer(raw, dtype=np.uint8).reshape(rounds + 1, BLOCK)
 
 
 # --------------------------------------------------------------------------
 # Primitiva de bloco
 # --------------------------------------------------------------------------
-class FinalPayCipher:
+class MaxPayCipher:
     """Cifra de bloco de 128 bits.
 
     `diffusion=False` desliga o MixColumns e produz a variante didatica
@@ -262,7 +262,7 @@ class FinalPayCipher:
 
 def encrypt_many_keys(block: bytes, round_keys: np.ndarray, rounds: int, diffusion: bool = True) -> np.ndarray:
     """Cifra o mesmo bloco sob N conjuntos de subchaves ((N, rounds+1, 16))."""
-    cipher = FinalPayCipher.__new__(FinalPayCipher)
+    cipher = MaxPayCipher.__new__(MaxPayCipher)
     cipher.rounds, cipher.diffusion = rounds, diffusion
     state = np.broadcast_to(np.frombuffer(block, dtype=np.uint8), (len(round_keys), BLOCK))
     return cipher._encrypt(state.copy(), round_keys)
@@ -271,7 +271,7 @@ def encrypt_many_keys(block: bytes, round_keys: np.ndarray, rounds: int, diffusi
 # --------------------------------------------------------------------------
 # Envelope de mensagem (cifragem autenticada)
 # --------------------------------------------------------------------------
-def _xor_stream(data: bytes, cipher: FinalPayCipher, nonce: bytes) -> bytes:
+def _xor_stream(data: bytes, cipher: MaxPayCipher, nonce: bytes) -> bytes:
     n_blocks = (len(data) + BLOCK - 1) // BLOCK
     if n_blocks == 0:
         return b""
@@ -304,7 +304,7 @@ def encrypt(
     """Cifra `data` e devolve o envelope autenticado (cabecalho + ct + tag)."""
     salt, nonce = os.urandom(16), os.urandom(12)
     enc_key, mac_key = derive_keys(secret, salt, nonce)
-    cipher = FinalPayCipher(enc_key, rounds, diffusion)
+    cipher = MaxPayCipher(enc_key, rounds, diffusion)
 
     if mode == MODE_CTR:
         ct = _xor_stream(data, cipher, nonce)
@@ -334,7 +334,7 @@ def decrypt(blob: bytes, secret: str | bytes) -> bytes:
     if not hmac.compare_digest(hmac.new(mac_key, header + ct, hashlib.sha256).digest(), tag):
         raise ValueError("falha de integridade: chave incorreta ou conteúdo adulterado")
 
-    cipher = FinalPayCipher(enc_key, rounds, bool(flags & FLAG_DIFFUSION))
+    cipher = MaxPayCipher(enc_key, rounds, bool(flags & FLAG_DIFFUSION))
     if mode == MODE_CTR:
         return _xor_stream(ct, cipher, nonce)[:length]
     blocks = np.frombuffer(ct, dtype=np.uint8).reshape(-1, BLOCK)

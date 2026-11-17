@@ -11,9 +11,9 @@ import os
 
 import numpy as np
 
-from finalpay import baseline
-from finalpay.cipher import BLOCK, DEFAULT_ROUNDS, SBOX, FinalPayCipher
-from finalpay.metrics import hamming_bits
+from maxpay import baseline
+from maxpay.cipher import BLOCK, DEFAULT_ROUNDS, SBOX, MaxPayCipher
+from maxpay.metrics import hamming_bits
 
 BITS = BLOCK * 8  # 128
 
@@ -39,7 +39,7 @@ def avalanche(
 ) -> dict:
     """Avalanche de texto claro: 1 bit alterado na entrada -> bits alterados na saida."""
     rng = np.random.default_rng(semente)
-    cipher = FinalPayCipher(os.urandom(32), rounds, diffusion)
+    cipher = MaxPayCipher(os.urandom(32), rounds, diffusion)
 
     p1 = _random_blocks(amostras, rng)
     bits_alterados = rng.integers(0, BITS, size=amostras)
@@ -79,8 +79,8 @@ def key_avalanche(rounds: int = DEFAULT_ROUNDS, diffusion: bool = True, amostras
         k2 = bytearray(k1)
         bit = int(rng.integers(0, 256))
         k2[bit // 8] ^= 0x80 >> (bit % 8)
-        c1 = FinalPayCipher(bytes(k1), rounds, diffusion).encrypt_blocks(blocos[i : i + 1])
-        c2 = FinalPayCipher(bytes(k2), rounds, diffusion).encrypt_blocks(blocos[i : i + 1])
+        c1 = MaxPayCipher(bytes(k1), rounds, diffusion).encrypt_blocks(blocos[i : i + 1])
+        c2 = MaxPayCipher(bytes(k2), rounds, diffusion).encrypt_blocks(blocos[i : i + 1])
         distancias.append(int(hamming_bits(c1, c2)[0]))
     d = np.array(distancias)
     return {
@@ -98,7 +98,7 @@ def sac_matrix(rounds: int = DEFAULT_ROUNDS, diffusion: bool = True, amostras: i
     O ideal e 0,5 em todas as 16.384 celulas.
     """
     rng = np.random.default_rng(7)
-    cipher = FinalPayCipher(os.urandom(32), rounds, diffusion)
+    cipher = MaxPayCipher(os.urandom(32), rounds, diffusion)
     matriz = np.zeros((BITS, BITS), dtype=np.float32)
     for i in range(BITS):
         p1 = _random_blocks(amostras, rng)
@@ -166,7 +166,7 @@ def differential_distinguisher(
     exploravel.
     """
     rng = np.random.default_rng(semente)
-    cipher = FinalPayCipher(os.urandom(32), rounds, diffusion)
+    cipher = MaxPayCipher(os.urandom(32), rounds, diffusion)
     delta = np.zeros(BLOCK, dtype=np.uint8)
     delta[0] = delta_byte
 
@@ -195,7 +195,7 @@ def differential_distinguisher(
 
 
 def differential_profile(amostras: int = 4096) -> dict:
-    """Comparacao completa: FPC-128 integro, variante fraca e AES-256."""
+    """Comparacao completa: MPC-128 integro, variante fraca e AES-256."""
     cheio = avalanche(DEFAULT_ROUNDS, True, amostras)
     fraco = avalanche(1, False, amostras)
     medio = avalanche(3, True, amostras)
@@ -215,10 +215,10 @@ def differential_profile(amostras: int = 4096) -> dict:
 
     return {
         "ataque": "diferencial",
-        "fpc_integro": cheio,
-        "fpc_3_rodadas": medio,
-        "fpc_fraco": fraco,
-        "fpc_sem_difusao_14_rodadas": sem_difusao,
+        "mpc_integro": cheio,
+        "mpc_3_rodadas": medio,
+        "mpc_fraco": fraco,
+        "mpc_sem_difusao_14_rodadas": sem_difusao,
         "aes256": {
             "media_bits": round(float(d_aes.mean()), 3),
             "media_pct": round(float(d_aes.mean()) / BITS * 100, 2),

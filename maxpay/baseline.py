@@ -1,8 +1,8 @@
-"""Camada AES-256 do FinalPay (etapa 2 da arquitetura) e referencia de comparacao.
+"""Camada AES-256 do MaxPay (etapa 2 da arquitetura) e referencia de comparacao.
 
 O AES-256-GCM e usado de duas formas:
   1. como algoritmo selecionavel do cofre (cifragem + integridade);
-  2. como linha de base nos experimentos, para dizer se o FPC-128 se comporta
+  2. como linha de base nos experimentos, para dizer se o MPC-128 se comporta
      como uma cifra moderna ou nao.
 """
 
@@ -15,7 +15,7 @@ import struct
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-MAGIC = b"FPAES1"
+MAGIC = b"MPAES1"
 HEADER = struct.Struct(">6s16s12sQ")  # magic, salt, nonce, tamanho
 KDF_ITERATIONS = 120_000
 
