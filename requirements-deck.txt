@@ -1,0 +1,13 @@
+# Dependencias apenas para GERAR os materiais da apresentacao: as figuras de
+# apoio e o .pptx que entra no Canva.
+#
+# Nao estao em requirements.txt de proposito. Quem so quer rodar o sistema e
+# conferir os resultados nao precisa instalar nada disso.
+#
+#   pip install -r requirements-deck.txt
+#   python -m maxpay.experiments
+#   python -m maxpay.figuras
+#   python -m maxpay.pptx_deck
+
+matplotlib>=3.8
+python-pptx>=1.0

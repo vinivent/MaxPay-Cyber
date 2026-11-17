@@ -31,10 +31,27 @@ interface, e a tela recarrega sozinha quando o arquivo de resultados muda.
 Outros comandos:
 
 ```bash
-pytest -q                 # 42 testes
-python -m maxpay.report # regera docs/RELATORIO.md a partir dos resultados
-python -m maxpay.slides # regera docs/slides/index.html
+pytest -q                  # 45 testes
+python -m maxpay.report    # regera docs/RELATORIO.md a partir dos resultados
+python -m maxpay.slides    # regera docs/slides/index.html
+python -m maxpay.guia      # regera docs/GUIA-APRESENTACAO.pdf, o roteiro falado
 ```
+
+### Materiais da apresentação
+
+As figuras de apoio e a versão PowerPoint do deck precisam de duas bibliotecas
+a mais, que ficam fora de `requirements.txt` justamente para não pesar em quem
+só quer rodar o sistema:
+
+```bash
+pip install -r requirements-deck.txt
+python -m maxpay.figuras     # docs/figuras/*.png, tudo a partir dos resultados
+python -m maxpay.pptx_deck   # docs/MaxPay-apresentacao.pptx, para importar no Canva
+```
+
+O deck que vale é `docs/slides/index.html`: ele lê os resultados e nunca
+envelhece. O `.pptx` existe porque o Canva importa PowerPoint e não importa
+HTML. No Canva: **Criar um design → Importar arquivo**.
 
 ---
 
