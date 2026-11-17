@@ -120,5 +120,6 @@ precisão e revocação do detector. Não há dados de usuários reais.
 
 - `docs/RELATORIO.md`, relatório técnico completo (gerado dos resultados)
 - `docs/slides/index.html`, slides da apresentação (abra no navegador; `P` imprime em PDF)
+- `docs/GUIA-APRESENTACAO.pdf` — roteiro da apresentação, tela a tela
 - `results/experimentos.json`, todas as medições, regeneráveis por comando
 - `DESIGN.md`, o sistema visual do dashboard
