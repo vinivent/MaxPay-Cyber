@@ -32,15 +32,22 @@ RAIZ = Path(__file__).resolve().parent.parent
 FIGURAS = RAIZ / "docs" / "figuras"
 DESTINO = RAIZ / "docs" / "MaxPay-apresentacao.pptx"
 
-TINTA = RGBColor(0x0A, 0x0A, 0x0C)
-SUPERFICIE = RGBColor(0x14, 0x14, 0x18)
-LINHA = RGBColor(0x26, 0x26, 0x2C)
-TEXTO = RGBColor(0xF2, 0xF2, 0xF4)
-TEXTO_2 = RGBColor(0xA0, 0xA0, 0xAA)
-TEXTO_3 = RGBColor(0x70, 0x70, 0x7A)
-ACENTO = RGBColor(0x5B, 0x8D, 0xEF)
-OK = RGBColor(0x45, 0xC0, 0x7E)
-CRIT = RGBColor(0xEC, 0x6A, 0x5E)
+from maxpay import paleta
+
+# Cores amostradas do template do Canva que o grupo escolheu, para o deck
+# importado cair casado com ele. Ver maxpay/paleta.py.
+def _c(hexa: str) -> RGBColor:
+    return RGBColor(*paleta.rgb(hexa))
+
+TINTA = _c(paleta.NAVY)
+SUPERFICIE = _c(paleta.NAVY_ESCURO)
+LINHA = _c(paleta.NAVY_CLARO)
+TEXTO = _c(paleta.CREME)
+TEXTO_2 = _c(paleta.CREME_2)
+TEXTO_3 = _c(paleta.CREME_3)
+ACENTO = _c(paleta.CREME)
+OK = _c(paleta.SERIE_ALERTA)
+CRIT = _c(paleta.SERIE_RUIM)
 
 FONTE = "Helvetica Neue"
 
@@ -50,9 +57,28 @@ UTIL = L - 2 * MARGEM
 
 
 def _fundo(slide) -> None:
+    """Fundo do slide E um retangulo de sangria por baixo de tudo.
+
+    Os dois, porque o importador do Canva costuma descartar o fundo de nivel de
+    slide. Sem o retangulo, um deck escuro chega la branco, com texto branco
+    por cima: invisivel.
+    """
+    from pptx.enum.shapes import MSO_SHAPE
+
     f = slide.background.fill
     f.solid()
     f.fore_color.rgb = TINTA
+
+    r = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, L, A)
+    r.fill.solid()
+    r.fill.fore_color.rgb = TINTA
+    r.line.fill.background()
+    r.shadow.inherit = False
+    r.name = "fundo"
+    # Primeiro no z-order: add_shape joga no topo, entao desce para o fundo.
+    arvore = slide.shapes._spTree
+    arvore.remove(r._element)
+    arvore.insert(2, r._element)
 
 
 def _caixa(slide, x, y, w, h, texto, *, tam=18, cor=TEXTO, negrito=False,

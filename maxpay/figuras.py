@@ -30,17 +30,21 @@ from maxpay.experiments import carregar
 
 SAIDA = Path(__file__).resolve().parent.parent / "docs" / "figuras"
 
-TINTA = "#0A0A0C"
-SUPERFICIE = "#141418"
-LINHA = "#26262C"
-LINHA_FORTE = "#3E3E48"
-TEXTO = "#F2F2F4"
-TEXTO_2 = "#A0A0AA"
-TEXTO_3 = "#70707A"
-ACENTO = "#5B8DEF"
-OK = "#45C07E"
-AVISO = "#E3A748"
-CRIT = "#EC6A5E"
+from maxpay import paleta
+
+# Cores do template do Canva que o grupo escolheu. Ver maxpay/paleta.py.
+TINTA = paleta.NAVY
+SUPERFICIE = paleta.NAVY_ESCURO
+LINHA = paleta.NAVY_CLARO
+LINHA_FORTE = paleta.CREME_3
+TEXTO = paleta.CREME
+TEXTO_2 = paleta.CREME_2
+TEXTO_3 = paleta.CREME_3
+ACENTO = paleta.SERIE_BOA
+OK = paleta.SERIE_BOA
+AVISO = paleta.SERIE_ALERTA
+CRIT = paleta.SERIE_RUIM
+REF = paleta.SERIE_REF
 
 DPI = 200
 
@@ -104,9 +108,9 @@ def difusao_por_rodada(res: dict) -> Path:
     ax.plot(rod_s, pct_s, color=CRIT, lw=2.4, marker="o", ms=4.5,
             label="sem MixColumns", zorder=3)
 
-    ax.axvline(2, color=OK, lw=1.2, alpha=0.55, zorder=2)
+    ax.axvline(2, color=AVISO, lw=1.4, alpha=0.85, zorder=2)
     ax.annotate("difusão completa\nna rodada 2", (2, 36), xytext=(10, 0),
-                textcoords="offset points", color=OK, fontsize=10, va="top")
+                textcoords="offset points", color=AVISO, fontsize=10, va="top")
 
     ax.set_xlabel("rodada")
     ax.set_ylabel("bits de saída alterados (%)")
@@ -124,7 +128,7 @@ def avalanche_barras(res: dict) -> Path:
     d = res["diferencial"]
     itens = [
         ("MPC-128 íntegro", d["mpc_integro"]["media_pct"], ACENTO),
-        ("AES-256 (referência)", d["aes256"]["media_pct"], TEXTO_3),
+        ("AES-256 (referência)", d["aes256"]["media_pct"], REF),
         ("14 rodadas, sem difusão", d["mpc_sem_difusao_14_rodadas"]["media_pct"], CRIT),
         ("1 rodada, sem difusão", d["mpc_fraco"]["media_pct"], CRIT),
     ]
@@ -228,7 +232,7 @@ def anomalias(res: dict) -> Path:
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 3.9), sharey=True,
                                  gridspec_kw={"wspace": 0.08})
 
-    cores = [OK if v >= 50 else CRIT for v in rev]
+    cores = [paleta.SERIE_BOA if v >= 50 else CRIT for v in rev]
     a1.barh(y, rev, height=0.56, color=cores)
     for yi, v in zip(y, rev):
         a1.text(v + 2, yi, f"{_br(v, 1)}%", va="center", color=TEXTO, fontsize=10.5)
@@ -310,7 +314,7 @@ def diagrama_rodada(res: dict) -> Path:
         ("AddRoundKey", "estado ⊕ subchave", ACENTO),
         ("SubBytes", "S-box, byte a byte", TEXTO_3),
         ("ShiftRows", "troca as posições", TEXTO_3),
-        ("MixColumns", "mistura as colunas", OK),
+        ("MixColumns", "mistura as colunas", AVISO),
     ]
     w, h, lac = 2.0, 1.05, 0.33
     x = 0.12
@@ -344,7 +348,7 @@ def diagrama_chave(res: dict) -> Path:
         ("senha", "digitada por quem opera", 1.55, CRIT),
         ("chave mestra", f"PBKDF2, {_br(dic['iteracoes_pbkdf2'], 0)} iterações", 2.35, AVISO),
         ("chave de sessão", "HKDF sobre um nonce novo", 2.35, ACENTO),
-        ("15 subchaves", "uma por rodada", 1.85, OK),
+        ("15 subchaves", "uma por rodada", 1.85, AVISO),
     ]
     x, h = 0.12, 1.05
     for nome, sub, w, cor in passos:
