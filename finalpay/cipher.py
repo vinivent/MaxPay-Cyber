@@ -1,0 +1,309 @@
+"""FPC-128: cifra de bloco simetrica autoral do FinalPay (rede SPN, blocos de 128 bits).
+
+Estrutura por rodada, atendendo aos requisitos da Parte 2 do projeto:
+  AddRoundKey  -> XOR com a subchave (confusao dependente da chave)
+  SubBytes     -> substituicao nao-linear via S-box em GF(2^8)
+  ShiftRows    -> permutacao de bytes
+  MixColumns   -> difusao linear em GF(2^8) (matriz MDS)
+
+A chave nunca e fixa: cada mensagem gera salt e nonce aleatorios que alimentam
+a derivacao das subchaves (ver `derive_keys` e `expand_round_keys`).
+
+Tudo opera sobre arrays numpy (N, 16) para que os experimentos de ataque
+consigam cifrar milhoes de blocos em tempo util.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import hmac
+import os
+import struct
+
+import numpy as np
+
+BLOCK = 16
+DEFAULT_ROUNDS = 14
+MAGIC = b"FPAY01"
+HEADER = struct.Struct(">6sBBB16s12sQ")  # magic, modo, rodadas, flags, salt, nonce, tamanho
+TAG_LEN = 32
+KDF_ITERATIONS = 120_000
+
+MODE_CTR = 1
+MODE_ECB = 2
+FLAG_DIFFUSION = 1
+
+
+# --------------------------------------------------------------------------
+# GF(2^8): tabelas de log/antilog usadas na S-box e no MixColumns
+# --------------------------------------------------------------------------
+def _gf_tables() -> tuple[np.ndarray, np.ndarray]:
+    exp = np.zeros(512, dtype=np.uint8)
+    log = np.zeros(256, dtype=np.uint8)
+    x = 1
+    for i in range(255):
+        exp[i] = x
+        log[x] = i
+        x ^= (x << 1) ^ (0x1B if x & 0x80 else 0)  # x <- x * 3 no corpo
+        x &= 0xFF
+    exp[255:] = exp[:257]
+    return exp, log
+
+
+GF_EXP, GF_LOG = _gf_tables()
+
+
+def gf_mul(a: int, b: int) -> int:
+    if a == 0 or b == 0:
+        return 0
+    return int(GF_EXP[(int(GF_LOG[a]) + int(GF_LOG[b])) % 255])
+
+
+def _build_sbox() -> np.ndarray:
+    """Inverso multiplicativo em GF(2^8) seguido de transformacao afim.
+
+    Construcao classica: o inverso garante alta nao-linearidade e a afim
+    elimina pontos fixos.
+    """
+    sbox = np.zeros(256, dtype=np.uint8)
+    for i in range(256):
+        inv = 0 if i == 0 else int(GF_EXP[255 - int(GF_LOG[i])])
+        s = inv
+        for _ in range(4):
+            inv = ((inv << 1) | (inv >> 7)) & 0xFF
+            s ^= inv
+        sbox[i] = s ^ 0x63
+    return sbox
+
+
+def _invert(table: np.ndarray) -> np.ndarray:
+    inv = np.zeros(256, dtype=np.uint8)
+    inv[table] = np.arange(256, dtype=np.uint8)
+    return inv
+
+
+SBOX = _build_sbox()
+INV_SBOX = _invert(SBOX)
+
+# Permutacao de bytes (ShiftRows sobre o estado 4x4 em ordem coluna-maior).
+SHIFT_ROWS = np.array([(i + 4 * (i % 4)) % 16 for i in range(16)], dtype=np.intp)
+INV_SHIFT_ROWS = np.argsort(SHIFT_ROWS).astype(np.intp)
+
+MUL = {c: np.array([gf_mul(c, i) for i in range(256)], dtype=np.uint8) for c in (1, 2, 3, 9, 11, 13, 14)}
+
+
+def _mix(state: np.ndarray, coeffs: tuple[int, int, int, int]) -> np.ndarray:
+    a, b, c, d = (MUL[k] for k in coeffs)
+    s = state.reshape(*state.shape[:-1], 4, 4)  # (..., coluna, linha)
+    r0, r1, r2, r3 = s[..., 0], s[..., 1], s[..., 2], s[..., 3]
+    out = np.empty_like(s)
+    out[..., 0] = a[r0] ^ b[r1] ^ c[r2] ^ d[r3]
+    out[..., 1] = d[r0] ^ a[r1] ^ b[r2] ^ c[r3]
+    out[..., 2] = c[r0] ^ d[r1] ^ a[r2] ^ b[r3]
+    out[..., 3] = b[r0] ^ c[r1] ^ d[r2] ^ a[r3]
+    return out.reshape(state.shape)
+
+
+def mix_columns(state: np.ndarray) -> np.ndarray:
+    return _mix(state, (2, 3, 1, 1))
+
+
+def inv_mix_columns(state: np.ndarray) -> np.ndarray:
+    return _mix(state, (14, 11, 13, 9))
+
+
+# --------------------------------------------------------------------------
+# Derivacao de chaves (dinamica: depende do salt e do nonce da mensagem)
+# --------------------------------------------------------------------------
+def _hkdf(key: bytes, info: bytes, length: int) -> bytes:
+    out, block, counter = b"", b"", 1
+    while len(out) < length:
+        block = hmac.new(key, block + info + bytes([counter]), hashlib.sha256).digest()
+        out += block
+        counter += 1
+    return out[:length]
+
+
+def derive_keys(secret: str | bytes, salt: bytes, nonce: bytes) -> tuple[bytes, bytes]:
+    """Material de chave da mensagem: (chave de cifragem, chave de integridade)."""
+    raw = secret.encode() if isinstance(secret, str) else secret
+    master = hashlib.pbkdf2_hmac("sha256", raw, salt, KDF_ITERATIONS, dklen=32)
+    material = _hkdf(master, b"finalpay/v1/" + nonce, 64)
+    return material[:32], material[32:]
+
+
+def expand_round_keys(enc_key: bytes, rounds: int) -> np.ndarray:
+    """Subchaves de rodada: array (rounds + 1, 16)."""
+    raw = _hkdf(enc_key, b"finalpay/v1/rk/%d" % rounds, (rounds + 1) * BLOCK)
+    return np.frombuffer(raw, dtype=np.uint8).reshape(rounds + 1, BLOCK)
+
+
+# --------------------------------------------------------------------------
+# Primitiva de bloco
+# --------------------------------------------------------------------------
+class FinalPayCipher:
+    """Cifra de bloco de 128 bits.
+
+    `diffusion=False` desliga o MixColumns e produz a variante didatica
+    vulneravel usada nos experimentos de ataque.
+    """
+
+    def __init__(self, enc_key: bytes, rounds: int = DEFAULT_ROUNDS, diffusion: bool = True):
+        if len(enc_key) != 32:
+            raise ValueError("a chave de cifragem precisa ter 32 bytes")
+        if not 1 <= rounds <= 32:
+            raise ValueError("rounds deve estar entre 1 e 32")
+        self.rounds = rounds
+        self.diffusion = diffusion
+        self.round_keys = expand_round_keys(enc_key, rounds)
+
+    # -- nucleo vetorizado -------------------------------------------------
+    def _encrypt(self, state: np.ndarray, rk: np.ndarray) -> np.ndarray:
+        state = state ^ rk[..., 0, :]
+        for r in range(1, self.rounds + 1):
+            state = SBOX[state]
+            state = state[..., SHIFT_ROWS]
+            if self.diffusion and r != self.rounds:
+                state = mix_columns(state)
+            state = state ^ rk[..., r, :]
+        return state
+
+    def _decrypt(self, state: np.ndarray, rk: np.ndarray) -> np.ndarray:
+        for r in range(self.rounds, 0, -1):
+            state = state ^ rk[..., r, :]
+            if self.diffusion and r != self.rounds:
+                state = inv_mix_columns(state)
+            state = state[..., INV_SHIFT_ROWS]
+            state = INV_SBOX[state]
+        return state ^ rk[..., 0, :]
+
+    def encrypt_blocks(self, blocks: np.ndarray) -> np.ndarray:
+        return self._encrypt(np.asarray(blocks, dtype=np.uint8), self.round_keys)
+
+    def decrypt_blocks(self, blocks: np.ndarray) -> np.ndarray:
+        return self._decrypt(np.asarray(blocks, dtype=np.uint8), self.round_keys)
+
+    def encrypt_block(self, block: bytes) -> bytes:
+        return self.encrypt_blocks(np.frombuffer(block, dtype=np.uint8)[None, :])[0].tobytes()
+
+    def decrypt_block(self, block: bytes) -> bytes:
+        return self.decrypt_blocks(np.frombuffer(block, dtype=np.uint8)[None, :])[0].tobytes()
+
+    def trace_rounds(self, blocks: np.ndarray) -> list[np.ndarray]:
+        """Estado apos cada rodada (inclui a rodada 0 = AddRoundKey inicial).
+
+        Usado para medir a avalanche rodada a rodada.
+        """
+        state = np.atleast_2d(np.asarray(blocks, dtype=np.uint8)) ^ self.round_keys[0]
+        out = [state.copy()]
+        for r in range(1, self.rounds + 1):
+            state = SBOX[state][..., SHIFT_ROWS]
+            if self.diffusion and r != self.rounds:
+                state = mix_columns(state)
+            state = state ^ self.round_keys[r]
+            out.append(state.copy())
+        return out
+
+    # -- modo contador -----------------------------------------------------
+    def keystream(self, nonce: bytes, n_blocks: int, offset: int = 0) -> np.ndarray:
+        counters = np.arange(offset, offset + n_blocks, dtype=">u8")
+        ctr = np.zeros((n_blocks, BLOCK), dtype=np.uint8)
+        ctr[:, :8] = np.frombuffer(nonce[:8], dtype=np.uint8)
+        ctr[:, 8:] = counters.view(np.uint8).reshape(n_blocks, 8)
+        return self.encrypt_blocks(ctr)
+
+
+def encrypt_many_keys(block: bytes, round_keys: np.ndarray, rounds: int, diffusion: bool = True) -> np.ndarray:
+    """Cifra o mesmo bloco sob N conjuntos de subchaves ((N, rounds+1, 16))."""
+    cipher = FinalPayCipher.__new__(FinalPayCipher)
+    cipher.rounds, cipher.diffusion = rounds, diffusion
+    state = np.broadcast_to(np.frombuffer(block, dtype=np.uint8), (len(round_keys), BLOCK))
+    return cipher._encrypt(state.copy(), round_keys)
+
+
+# --------------------------------------------------------------------------
+# Envelope de mensagem (cifragem autenticada)
+# --------------------------------------------------------------------------
+def _xor_stream(data: bytes, cipher: FinalPayCipher, nonce: bytes) -> bytes:
+    n_blocks = (len(data) + BLOCK - 1) // BLOCK
+    if n_blocks == 0:
+        return b""
+    stream = cipher.keystream(nonce, n_blocks).reshape(-1)[: len(data)]
+    return (np.frombuffer(data, dtype=np.uint8) ^ stream).tobytes()
+
+
+def _pad(data: bytes) -> bytes:
+    n = BLOCK - (len(data) % BLOCK)
+    return data + bytes([n]) * n
+
+
+def _unpad(data: bytes) -> bytes:
+    if not data or len(data) % BLOCK:
+        raise ValueError("texto cifrado com tamanho inválido")
+    n = data[-1]
+    if not 1 <= n <= BLOCK or data[-n:] != bytes([n]) * n:
+        raise ValueError("padding inválido")
+    return data[:-n]
+
+
+def encrypt(
+    data: bytes,
+    secret: str | bytes,
+    *,
+    mode: int = MODE_CTR,
+    rounds: int = DEFAULT_ROUNDS,
+    diffusion: bool = True,
+) -> bytes:
+    """Cifra `data` e devolve o envelope autenticado (cabecalho + ct + tag)."""
+    salt, nonce = os.urandom(16), os.urandom(12)
+    enc_key, mac_key = derive_keys(secret, salt, nonce)
+    cipher = FinalPayCipher(enc_key, rounds, diffusion)
+
+    if mode == MODE_CTR:
+        ct = _xor_stream(data, cipher, nonce)
+    elif mode == MODE_ECB:
+        blocks = np.frombuffer(_pad(data), dtype=np.uint8).reshape(-1, BLOCK)
+        ct = cipher.encrypt_blocks(blocks).tobytes()
+    else:
+        raise ValueError("modo desconhecido")
+
+    flags = FLAG_DIFFUSION if diffusion else 0
+    header = HEADER.pack(MAGIC, mode, rounds, flags, salt, nonce, len(data))
+    tag = hmac.new(mac_key, header + ct, hashlib.sha256).digest()
+    return header + ct + tag
+
+
+def decrypt(blob: bytes, secret: str | bytes) -> bytes:
+    """Verifica a integridade e decifra o envelope. Levanta ValueError se adulterado."""
+    if len(blob) < HEADER.size + TAG_LEN:
+        raise ValueError("envelope truncado")
+    header = blob[: HEADER.size]
+    ct, tag = blob[HEADER.size : -TAG_LEN], blob[-TAG_LEN:]
+    magic, mode, rounds, flags, salt, nonce, length = HEADER.unpack(header)
+    if magic != MAGIC:
+        raise ValueError("formato não reconhecido")
+
+    enc_key, mac_key = derive_keys(secret, salt, nonce)
+    if not hmac.compare_digest(hmac.new(mac_key, header + ct, hashlib.sha256).digest(), tag):
+        raise ValueError("falha de integridade: chave incorreta ou conteúdo adulterado")
+
+    cipher = FinalPayCipher(enc_key, rounds, bool(flags & FLAG_DIFFUSION))
+    if mode == MODE_CTR:
+        return _xor_stream(ct, cipher, nonce)[:length]
+    blocks = np.frombuffer(ct, dtype=np.uint8).reshape(-1, BLOCK)
+    return _unpad(cipher.decrypt_blocks(blocks).tobytes())
+
+
+def describe(blob: bytes) -> dict:
+    """Metadados publicos do envelope, sem precisar da chave."""
+    magic, mode, rounds, flags, salt, nonce, length = HEADER.unpack(blob[: HEADER.size])
+    return {
+        "formato": magic.decode(),
+        "modo": "CTR" if mode == MODE_CTR else "ECB",
+        "rodadas": rounds,
+        "difusao": bool(flags & FLAG_DIFFUSION),
+        "salt": salt.hex(),
+        "nonce": nonce.hex(),
+        "bytes_claros": length,
+        "bytes_cifrados": len(blob),
+    }

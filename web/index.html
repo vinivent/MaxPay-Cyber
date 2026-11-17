@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinalPay — Cofre Criptográfico</title>
+<meta name="description" content="Cofre criptográfico de um banco digital que mede a própria segurança: cifra autoral FPC-128, esteganografia, 2 milhões de eventos e detecção de anomalias.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2315418E'/%3E%3Cpath d='M8 11V8.5a4 4 0 0 1 8 0V11M7 11h10v7H7z' fill='none' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+<svg style="display:none" aria-hidden="true">
+  <defs>
+    <g id="i-base" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </defs>
+  <symbol id="ic-vault" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 8v1.5M12 14.5V16M8 12h1.5M14.5 12H16"/>
+  </symbol>
+  <symbol id="ic-cipher" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3 20 6v6c0 4.2-3 7.6-8 9-5-1.4-8-4.8-8-9V6z"/><path d="m9.5 12 1.8 1.8 3.2-3.6"/>
+  </symbol>
+  <symbol id="ic-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L15 12l5 5"/>
+  </symbol>
+  <symbol id="ic-data" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>
+  </symbol>
+  <symbol id="ic-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 13h3l2.5-7 3.5 14 3-10 2 3h4"/>
+  </symbol>
+  <symbol id="ic-verdict" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="9" r="6"/><path d="m9.5 9 1.8 1.8L14.5 7"/><path d="m8.5 14.2-1 6.3 4.5-2.4 4.5 2.4-1-6.3"/>
+  </symbol>
+  <symbol id="ic-lab" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 3v6.5L4.6 18A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-3L14 9.5V3"/><path d="M8.5 3h7M7.3 15h9.4"/>
+  </symbol>
+  <symbol id="ic-overview" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+  </symbol>
+  <symbol id="ic-run" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 5.5v13l11-6.5z"/>
+  </symbol>
+  <symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+  </symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 4 2.8 20h18.4z"/><path d="M12 10v4M12 17h.01"/>
+  </symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v11M7.5 10 12 14.5 16.5 10M4 20h16"/>
+  </symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">FP</span>FinalPay</div>
+  <span class="brand-tag">Cofre criptográfico</span>
+  <div class="topbar-right">
+    <span id="status-bateria" class="meta num">carregando…</span>
+    <button id="btn-bateria" class="btn btn-sm"><svg><use href="#ic-run"/></svg>Executar bateria</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Seções">
+    <div class="rail-group">
+      <button class="nav-item" data-page="panorama" aria-current="page"><svg><use href="#ic-overview"/></svg>Panorama</button>
+    </div>
+    <div class="rail-group">
+      <span class="label">Arquitetura</span>
+      <button class="nav-item" data-page="cofre"><span class="nav-num">1</span>Entrada e cofre</button>
+      <button class="nav-item" data-page="cifra"><span class="nav-num">2</span>Cifragem FPC-128</button>
+      <button class="nav-item" data-page="estego"><span class="nav-num">3</span>Esteganografia</button>
+      <button class="nav-item" data-page="bigdata"><span class="nav-num">4</span>Big Data</button>
+      <button class="nav-item" data-page="ia"><span class="nav-num">5</span>Inteligência Artificial</button>
+      <button class="nav-item" data-page="veredito"><span class="nav-num">6</span>Veredito</button>
+    </div>
+    <div class="rail-group">
+      <span class="label">Análise</span>
+      <button class="nav-item" data-page="ataques"><svg><use href="#ic-lab"/></svg>Laboratório de ataques</button>
+    </div>
+  </nav>
+
+  <main class="main" id="conteudo">
+
+    <!-- ---------------------------------------------------------- Panorama -->
+    <section id="page-panorama" class="page stack-lg" aria-labelledby="titulo-panorama">
+      <div id="panorama-verdito"></div>
+      <div class="panel"><div class="panel-body" style="padding:28px 32px">
+        <h1 class="display" id="titulo-panorama">O sistema é seguro?</h1>
+        <div class="row" style="gap:14px;margin-bottom:16px">
+          <span class="answer-lg" id="verdito-resposta">—</span>
+          <span id="verdito-ressalvas"></span>
+        </div>
+        <p class="body measure" id="verdito-justificativa" style="margin-bottom:14px">
+          <span class="muted">Aguardando os resultados da bateria de experimentos…</span></p>
+        <p class="small measure" id="verdito-ressalva" style="color:var(--warn)"></p>
+      </div></div>
+      <div id="panorama-medidas" class="measures"></div>
+      <div>
+        <div class="page-head"><h2 class="h2">As quatro perguntas da avaliação</h2>
+          <p class="body measure">Cada resposta vem com a medida que a sustenta e, quando existe, com a variante enfraquecida que falha no mesmo teste.</p></div>
+        <div id="panorama-perguntas" class="grid grid-2"></div>
+      </div>
+      <div>
+        <div class="page-head"><h2 class="h2">As seis camadas</h2></div>
+        <div id="panorama-camadas" class="grid grid-3"></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------- Cofre -->
+    <section id="page-cofre" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Entrada e cofre</h1>
+        <p class="body measure">Cifre texto, arquivos ou imagens. O mesmo envelope pode ser escondido dentro de uma imagem por esteganografia. Toda operação é registrada abaixo.</p>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <div class="panel-head"><h2 class="h3">Cifrar</h2></div>
+          <div class="panel-body stack">
+            <div class="segmented" role="group" aria-label="Tipo de entrada" id="cofre-tipo">
+              <button type="button" aria-pressed="true" data-tipo="texto">Texto</button>
+              <button type="button" aria-pressed="false" data-tipo="arquivo">Arquivo</button>
+            </div>
+            <label class="field" id="campo-texto"><span class="label">Conteúdo</span>
+              <textarea id="cofre-texto">TX473188 BOLETO  R$    47523.68 CT1313-1 Inter     2026-11-27 APROVADO</textarea></label>
+            <label class="field" id="campo-arquivo" hidden><span class="label">Arquivo</span>
+              <input type="file" id="cofre-arquivo"></label>
+            <label class="field"><span class="label">Senha do cofre</span>
+              <input type="password" id="cofre-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+            <div class="grid grid-2">
+              <label class="field"><span class="label">Algoritmo</span>
+                <select id="cofre-algo"><option>FPC-128</option><option>AES-256</option></select></label>
+              <label class="field"><span class="label">Modo</span>
+                <select id="cofre-modo"><option>CTR</option><option>ECB</option></select></label>
+            </div>
+            <div class="grid grid-2">
+              <label class="field"><span class="label">Rodadas <span id="cofre-rodadas-v" class="num">14</span></span>
+                <input type="range" id="cofre-rodadas" min="1" max="20" value="14"></label>
+              <label class="check" style="align-self:end;padding-bottom:8px">
+                <input type="checkbox" id="cofre-difusao" checked>Difusão (MixColumns)</label>
+            </div>
+            <label class="check"><input type="checkbox" id="cofre-ocultar">Ocultar o envelope numa imagem</label>
+            <label class="field" id="campo-portadora" hidden><span class="label">Imagem portadora (PNG)</span>
+              <input type="file" id="cofre-portadora" accept="image/png,image/jpeg"></label>
+            <div class="row">
+              <button id="btn-cifrar" class="btn btn-primary">Cifrar</button>
+              <span id="cofre-erro" class="small" style="color:var(--crit)"></span>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2 class="h3">Decifrar</h2></div>
+          <div class="panel-body stack">
+            <label class="field"><span class="label">Envelope (base64)</span>
+              <textarea id="dec-envelope" placeholder="cole o envelope ou cifre algo ao lado"></textarea></label>
+            <label class="field"><span class="label">Senha</span>
+              <input type="password" id="dec-senha" value="cofre-finalpay-2026" autocomplete="off"></label>
+            <div class="row">
+              <button id="btn-decifrar" class="btn btn-primary">Decifrar</button>
+              <button id="btn-decifrar-img" class="btn">Revelar da imagem</button>
+            </div>
+            <div id="dec-saida"></div>
+          </div>
+        </div>
+      </div>
+      <div id="cofre-resultado"></div>
+      <div class="panel">
+        <div class="panel-head"><h2 class="h3">Operações desta sessão</h2>
+          <span class="meta">alimentam a camada de Big Data</span></div>
+        <div class="panel-body flush"><div class="table-wrap"><table id="cofre-log">
+          <thead><tr><th>Horário</th><th>Operação</th><th>Algoritmo</th><th>Estado</th><th class="n">Bytes</th><th class="n">Latência</th><th>Detalhe</th></tr></thead>
+          <tbody><tr><td colspan="7" class="muted">Nenhuma operação ainda.</td></tr></tbody>
+        </table></div></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------- Cifra -->
+    <section id="page-cifra" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Cifragem FPC-128</h1>
+        <p class="body measure">Rede de substituição-permutação de 128 bits com chave de 256 bits. Cada propriedade abaixo é comparada com a variante sem difusão e com o AES-256.</p>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Especificação</h2></div>
+          <div class="panel-body"><dl class="spec" id="cifra-spec"></dl></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">A rodada</h2></div>
+          <div class="panel-body"><pre class="code">AddRoundKey   estado ← estado ⊕ subchave[r]
+SubBytes      estado ← S[estado]
+ShiftRows     estado ← estado[π]
+MixColumns    estado ← M · estado  em GF(2⁸)</pre>
+            <dl class="spec" style="margin-top:12px">
+              <dt>AddRoundKey</dt><dd>XOR — confusão</dd>
+              <dt>SubBytes</dt><dd>substituição não-linear</dd>
+              <dt>ShiftRows</dt><dd>permutação de bytes</dd>
+              <dt>MixColumns</dt><dd>difusão (matriz MDS)</dd>
+            </dl>
+            <p class="small" style="margin-top:12px">A última rodada omite o MixColumns, como é padrão em redes SPN.</p></div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Efeito avalanche por rodada</h2>
+        <span class="meta">1 bit alterado na entrada</span></div>
+        <div class="panel-body"><div id="chart-avalanche" data-resumo="Bits de saída alterados por rodada, comparando o FPC-128 íntegro com a variante sem difusão"></div>
+          <p class="small" style="margin-top:12px" id="cifra-avalanche-nota"></p></div></div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Distribuição da avalanche</h2></div>
+          <div class="panel-body"><div id="chart-aval-hist" data-resumo="Distribuição do número de bits alterados por inversão de 1 bit de entrada"></div></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">Vazão</h2><span class="meta">mede implementação, não segurança</span></div>
+          <div class="panel-body"><div id="chart-vazao" data-resumo="Vazão em megabytes por segundo do FPC-128 e do AES-256"></div></div></div>
+      </div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Critério estrito de avalanche</h2>
+          <span class="meta">FPC-128 íntegro</span></div>
+          <div class="panel-body"><div id="chart-sac" data-resumo="Matriz 128 por 128 da probabilidade de inversão de cada bit de saída, FPC-128 íntegro"></div><div id="sac-resumo" style="margin-top:12px"></div></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">Mesma matriz, sem difusão</h2>
+          <span class="meta">variante enfraquecida</span></div>
+          <div class="panel-body"><div id="chart-sac-fraco" data-resumo="Mesma matriz para a variante sem difusão"></div><div id="sac-fraco-resumo" style="margin-top:12px"></div></div></div>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------- Esteganografia -->
+    <section id="page-estego" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Esteganografia</h1>
+        <p class="body measure">O envelope cifrado é espalhado pelos bits menos significativos da imagem, em posições derivadas da chave. Sem a chave não se sabe nem onde os bits estão.</p>
+      </div>
+      <div id="estego-medidas" class="measures"></div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Portadora e resultado</h2></div>
+          <div class="panel-body"><div id="estego-imagens" class="img-compare"></div></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">Qualidade</h2></div>
+          <div class="panel-body"><dl class="spec" id="estego-spec"></dl></div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Esteganálise por varredura</h2>
+        <span class="meta">teste de qui-quadrado de Westfeld, 20 segmentos</span></div>
+        <div class="panel-body"><div id="chart-estegoanalise" data-resumo="Probabilidade de ocultação detectada por segmento da imagem, em três variantes"></div>
+          <p class="small measure" style="margin-top:12px" id="estego-nota"></p></div></div>
+    </section>
+
+    <!-- ----------------------------------------------------------- Big Data -->
+    <section id="page-bigdata" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Big Data</h1>
+        <p class="body measure">Eventos de operações criptográficas, autenticação e acesso a arquivos, gravados em Parquet particionado por dia e consultados com DuckDB.</p>
+      </div>
+      <div id="bd-medidas" class="measures"></div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Eventos por hora</h2>
+        <span class="meta">30 dias</span></div>
+        <div class="panel-body"><div id="chart-serie" data-resumo="Eventos por hora ao longo de 30 dias, com os eventos anômalos destacados"></div></div></div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Por tipo de operação</h2></div>
+          <div class="panel-body flush"><div class="table-wrap auto"><table id="tab-tipo"></table></div></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">Usuários com mais falhas</h2></div>
+          <div class="panel-body flush"><div class="table-wrap"><table id="tab-suspeitos"></table></div></div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Desempenho da camada</h2></div>
+        <div class="panel-body"><dl class="spec" id="bd-spec"></dl></div></div>
+    </section>
+
+    <!-- ----------------------------------------------------------------- IA -->
+    <section id="page-ia" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Inteligência Artificial</h1>
+        <p class="body measure">Isolation Forest sobre janelas de comportamento por usuário. O modelo é treinado sem rótulos; os rótulos existem só para medir a qualidade depois.</p>
+      </div>
+      <div id="ia-medidas" class="measures"></div>
+      <div class="grid grid-2">
+        <div class="panel"><div class="panel-head"><h2 class="h3">Revocação por tipo de anomalia</h2>
+          <span class="meta">os cinco do enunciado</span></div>
+          <div class="panel-body"><div id="chart-ia-tipos" data-resumo="Percentual detectado de cada um dos cinco tipos de anomalia"></div></div></div>
+        <div class="panel"><div class="panel-head"><h2 class="h3">Distribuição do score de risco</h2></div>
+          <div class="panel-body"><div id="chart-ia-score" data-resumo="Distribuição do score de risco atribuído às janelas de comportamento"></div></div></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Pontos de operação</h2>
+        <span class="meta">quantas janelas a equipe aceita revisar</span></div>
+        <div class="panel-body flush"><div class="table-wrap auto"><table id="tab-operacao"></table></div></div></div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Alertas de maior risco</h2></div>
+        <div class="panel-body flush"><div class="table-wrap"><table id="tab-alertas"></table></div></div></div>
+    </section>
+
+    <!-- ----------------------------------------------------------- Veredito -->
+    <section id="page-veredito" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Veredito</h1>
+        <p class="body measure">As quatro perguntas da Parte 4, respondidas a partir dos números medidos pela bateria de experimentos.</p>
+      </div>
+      <div id="veredito-conteudo" class="stack-lg"></div>
+    </section>
+
+    <!-- ----------------------------------------------------------- Ataques -->
+    <section id="page-ataques" class="page stack-lg" hidden>
+      <div class="page-head">
+        <h1 class="h1">Laboratório de ataques</h1>
+        <p class="body measure">Os três ataques exigidos, executados ao vivo com os parâmetros que você escolher. Diminua as rodadas ou desligue a difusão para ver a cifra ceder.</p>
+      </div>
+
+      <div class="panel"><div class="panel-head"><h2 class="h3">Força bruta</h2>
+        <span class="meta">texto claro conhecido, espaço de chaves reduzido</span></div>
+        <div class="panel-body stack">
+          <div class="row">
+            <label class="field field-faixa"><span class="label">Entropia da chave: <span id="bf-bits-v" class="num">16</span> bits</span>
+              <input type="range" id="bf-bits" min="8" max="22" value="16"></label>
+            <button id="btn-bf" class="btn btn-primary" style="align-self:end">Executar ataque</button>
+          </div>
+          <div id="bf-saida"><div class="note"><svg><use href="#ic-info"/></svg>Escolha a entropia da chave e execute. O ataque usa um par de texto claro conhecido e mede a taxa real de chaves por segundo desta máquina.</div></div>
+        </div></div>
+
+      <div class="panel"><div class="panel-head"><h2 class="h3">Diferencial</h2>
+        <span class="meta">1 bit alterado na entrada</span></div>
+        <div class="panel-body stack">
+          <div class="row">
+            <label class="field field-faixa"><span class="label">Rodadas: <span id="df-rodadas-v" class="num">14</span></span>
+              <input type="range" id="df-rodadas" min="1" max="20" value="14"></label>
+            <label class="check"><input type="checkbox" id="df-difusao" checked>Difusão ligada</label>
+            <button id="btn-df" class="btn btn-primary" style="align-self:end">Executar ataque</button>
+          </div>
+          <div id="df-saida"><div class="note"><svg><use href="#ic-info"/></svg>Execute para inverter 1 bit da entrada em 4.096 blocos e medir quantos bits da saída mudam. Desligue a difusão para ver a avalanche desabar.</div></div>
+        </div></div>
+
+      <div class="panel"><div class="panel-head"><h2 class="h3">Estatístico — análise de frequência</h2>
+        <span class="meta">recuperação de texto sem chave</span></div>
+        <div class="panel-body stack">
+          <div class="row">
+            <label class="field field-faixa"><span class="label">Rodadas: <span id="fq-rodadas-v" class="num">1</span></span>
+              <input type="range" id="fq-rodadas" min="1" max="20" value="1"></label>
+            <label class="check"><input type="checkbox" id="fq-difusao">Difusão ligada</label>
+            <button id="btn-fq" class="btn btn-primary" style="align-self:end">Executar ataque</button>
+          </div>
+          <div id="fq-saida"><div class="note"><svg><use href="#ic-info"/></svg>Execute para tentar recuperar o texto sem nenhuma chave, usando só a frequência dos bytes. Com difusão ligada o ataque falha; sem ela, lê o registro.</div></div>
+        </div></div>
+
+      <div class="panel"><div class="panel-head"><h2 class="h3">O modo importa mais que as rodadas</h2>
+        <span class="meta">pixels de uma imagem estruturada, cifrados</span></div>
+        <div class="panel-body"><div id="ecb-imagens" class="grid grid-4"></div>
+          <p class="small measure" style="margin-top:14px" id="ecb-nota"></p></div></div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

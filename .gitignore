@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/lake/
+.impeccable/mocks/
+.taste-skill/
+.DS_Store
+
+# Estado efemero da sessao de design (a decisao em si fica no surface brief)
+.impeccable/questions/

@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-16T00:00:00Z",
+  "title": "Design System: FinalPay",
+  "extensions": {
+    "colorMeta": {
+      "acento": {
+        "role": "primary",
+        "displayName": "Azul Institucional",
+        "canonical": "#15418E",
+        "contrastOnWhite": "9.64:1",
+        "tonalRamp": ["#0A2049", "#0F3068", "#15418E", "#1A4FAA", "#2E67C6", "#6B96DC", "#AFC6EC", "#EEF2FA"]
+      },
+      "ok": {
+        "role": "secondary",
+        "displayName": "Verde Aprovado",
+        "canonical": "#067647",
+        "contrastOnWhite": "5.69:1",
+        "tonalRamp": ["#033A23", "#045633", "#067647", "#07915A", "#19B377", "#5FD0A3", "#ABEFC6", "#ECFDF3"]
+      },
+      "warn": {
+        "role": "secondary",
+        "displayName": "Âmbar Ressalva",
+        "canonical": "#B54708",
+        "contrastOnWhite": "5.43:1",
+        "tonalRamp": ["#4A1D03", "#7A3A09", "#B54708", "#D9600F", "#EE7F28", "#F6A662", "#FEDF89", "#FFFAEB"]
+      },
+      "crit": {
+        "role": "secondary",
+        "displayName": "Vermelho Falha",
+        "canonical": "#B42318",
+        "contrastOnWhite": "6.57:1",
+        "tonalRamp": ["#4A0F0A", "#7A1810", "#B42318", "#D4372A", "#E9675C", "#F49C94", "#FECDCA", "#FEF3F2"]
+      },
+      "serie-1": {
+        "role": "tertiary",
+        "displayName": "Azul de Série",
+        "canonical": "#2056C7",
+        "contrastOnWhite": "6.53:1",
+        "tonalRamp": ["#0C2155", "#133B8C", "#2056C7", "#3B71DC", "#6B94E7", "#9BB7F0", "#DCE6F9", "#F0F4FC"]
+      },
+      "serie-2": {
+        "role": "tertiary",
+        "displayName": "Laranja Queimado",
+        "canonical": "#C2410C",
+        "contrastOnWhite": "5.18:1",
+        "tonalRamp": ["#4D1A05", "#8A2E08", "#C2410C", "#DE5A1D", "#EC8450", "#F4AE86", "#FBE4D6", "#FDF3EC"]
+      },
+      "serie-3": {
+        "role": "tertiary",
+        "displayName": "Verde-Azulado",
+        "canonical": "#0D9488",
+        "contrastOnWhite": "3.74:1",
+        "tonalRamp": ["#053B36", "#086A61", "#0D9488", "#11B5A6", "#3AD3C4", "#7FE3D8", "#D4F0EB", "#EFFBF9"]
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#18181B",
+        "contrastOnWhite": "17.72:1",
+        "tonalRamp": ["#18181B", "#2A2A30", "#55555C", "#5C5C64", "#8F8F96", "#C9C9CE", "#E1E1E3", "#EDEDEF"]
+      },
+      "branco": {
+        "role": "neutral",
+        "displayName": "Branco",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#18181B", "#2A2A30", "#55555C", "#8F8F96", "#C9C9CE", "#E1E1E3", "#F5F5F6", "#FFFFFF"]
+      },
+      "linha": {
+        "role": "neutral",
+        "displayName": "Borda",
+        "canonical": "#E1E1E3",
+        "tonalRamp": ["#2A2A30", "#55555C", "#5C5C64", "#8F8F96", "#C9C9CE", "#E1E1E3", "#EDEDEF", "#FAFAFA"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Resposta em palavras na abertura; par mono para o número único de destaque." },
+      "headline": { "displayName": "Headline", "purpose": "Título de página e resposta-tese do Panorama." },
+      "title": { "displayName": "Title", "purpose": "Título de seção dentro da página." },
+      "subtitle": { "displayName": "Subtitle", "purpose": "Título de painel." },
+      "body": { "displayName": "Body", "purpose": "Texto corrido a 15px, travado em 68ch, por causa da leitura projetada." },
+      "ui": { "displayName": "UI", "purpose": "Botão, campo, item de navegação, nota." },
+      "meta": { "displayName": "Meta", "purpose": "Legenda, carimbo, unidade." },
+      "label": { "displayName": "Label", "purpose": "Rótulo de campo, cabeçalho de tabela, grupo de navegação. Nunca kicker." },
+      "numero": { "displayName": "Número", "purpose": "Grandeza medida em Geist Mono tabular; valor da faixa de medidas." },
+      "numero-xl": { "displayName": "Número XL", "purpose": "Número único de destaque, legível projetado." },
+      "numero-tabela": { "displayName": "Número de tabela", "purpose": "Célula numérica, valor de ficha técnica, código em linha." }
+    },
+    "fonts": [
+      { "family": "Geist", "weights": [400, 500, 600], "hosting": "self-hosted woff2 em web/fonts/", "display": "swap", "unicodeRange": "latin" },
+      { "family": "Geist Mono", "weights": [400, 500], "hosting": "self-hosted woff2 em web/fonts/", "display": "swap", "unicodeRange": "latin" }
+    ],
+    "shadows": [
+      { "name": "tip-float", "value": "0 4px 12px rgb(24 24 27 / 18%)", "purpose": "Única sombra decorativa do sistema: a dica de gráfico flutua sobre o próprio gráfico e precisa se descolar dele." },
+      { "name": "focus-halo", "value": "0 0 0 3px #EEF2FA", "purpose": "Anel de foco de campo (não é sombra); acompanha borda de acento e outline de 2px." }
+    ],
+    "motion": [
+      { "name": "draw-in", "value": "stroke-dashoffset var(--len) → 0, 900ms cubic-bezier(.16,1,.3,1) forwards", "purpose": "O único momento de movimento autorado: a curva de avalanche se desenha uma vez." },
+      { "name": "state-110", "value": "110ms ease", "purpose": "Transição funcional de botão, item de navegação, campo e segmented." },
+      { "name": "tip-90", "value": "90ms ease", "purpose": "Aparição por opacidade da dica de gráfico." },
+      { "name": "skip-120", "value": "120ms ease", "purpose": "Entrada do skip link ao receber foco." },
+      { "name": "spin", "value": "620ms linear infinite", "purpose": "Spinner de trabalho; para em prefers-reduced-motion." },
+      { "name": "reduced-motion", "value": "animation/transition-duration: 1ms", "purpose": "Com prefers-reduced-motion: reduce tudo colapsa, a curva aparece inteira e o spinner congela." }
+    ],
+    "breakpoints": [
+      { "name": "densa", "value": "1080px", "purpose": "Grades de 3 e 4 colunas caem para 2; faixa de medidas vira 2x2 e reconstrói as bordas." },
+      { "name": "compacta", "value": "860px", "purpose": "Rail a 0px e coluna única; rail vira faixa horizontal rolável; tipografia de destaque reduz (26→22px, 46→32px)." }
+    ],
+    "borders": [
+      { "name": "line", "value": "1px solid #E1E1E3", "purpose": "Contorno externo de qualquer bloco ou controle." },
+      { "name": "line-soft", "value": "1px solid #EDEDEF", "purpose": "Divisor interno: cabeçalho de painel, células da faixa de medidas, linhas de tabela e de ficha." }
+    ],
+    "browserSurfaces": [
+      { "name": "selection", "value": "background #CFDDF5; color #18181B" },
+      { "name": "caret", "value": "caret-color #15418E" },
+      { "name": "scrollbar", "value": "scrollbar-width: thin; thumb #C9C9CE com borda de 3px na cor do fundo; hover #8F8F96; 10px no WebKit" },
+      { "name": "focus-ring", "value": "outline: 2px solid #15418E; outline-offset: 2px; border-radius: 3px" }
+    ],
+    "iconography": {
+      "format": "SVG <symbol> em sprite único no documento",
+      "viewBox": "0 0 24 24",
+      "stroke": "1.5px currentColor, fill none, linecap/linejoin round",
+      "sizes": ["14px em botão", "15px em nota", "16px em navegação"]
+    },
+    "charts": {
+      "implementation": "SVG escrito à mão em web/charts.js; primitivas line, bars, heatmap",
+      "rules": [
+        "Um único eixo rotulado por gráfico: ticks de Y mais a linha de base em X.",
+        "Marcas finas: a barra nunca passa de 44px, por mais espaço que sobre; modo denso zera gap e raio.",
+        "Extremidade arredondada de até 4px só no topo, ancorada na linha de base.",
+        "Grade recessiva em #EDEDEF com crispEdges; referência tracejada 3 3 em #8F8F96.",
+        "Passo de tick inteiro quando a grandeza é inteira; formatação pt-BR com vírgula decimal.",
+        "Legenda só a partir de duas séries, e a anterior é removida a cada redesenho.",
+        "Camada de hover em todas as formas: mira vertical em linha, hover por barra, captura por célula na matriz.",
+        "Escala divergente na matriz SAC: #2056C7 ↔ #C2410C com #EDEDEF neutro no centro, porque o SAC gira em torno de 0,5.",
+        "data-resumo obrigatório em todo host; vira <title> e aria-label do SVG.",
+        "Redesenho só com variação de largura ≥24px, sobre min-height já reservado no CSS."
+      ]
+    },
+    "accessibility": {
+      "target": "WCAG AA para texto comum e AAA para número de destaque, derivado da cena de uso (projetor de sala com luz acesa)",
+      "rules": [
+        "Um h1 por destino, seções em h2, títulos de painel em h2 com tamanho de subtítulo.",
+        "Marcos: header da barra superior, nav do rail rotulado, main#conteudo; cada destino é section com aria-labelledby.",
+        "Skip link é o primeiro focável, escondido por translateY(-200%) e visível em :focus.",
+        "Foco sempre visível: anel global de 2px com offset; em campo, borda de acento mais halo de 3px.",
+        "Nenhuma informação só por cor: estado = cor + ponto + palavra; item ativo = cor + peso + aria-current; segmented = aria-pressed; gráfico = data-resumo.",
+        "Alvos confortáveis para quem opera de pé: botão 32px, item de navegação 7/12px em largura total, caixa de seleção 15px.",
+        "Sprite de ícones com aria-hidden; .sr-only para texto só de leitor.",
+        "#8F8F96 (3,21:1) é restrito a traço e cromo, nunca a texto."
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Ação padrão da interface: branco com borda de 1px, altura de 32px.",
+      "html": "<button class=\"ds-btn\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v11M7.5 10 12 14.5 16.5 10M4 20h16\"/></svg>Baixar relatório</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #E1E1E3; background: #FFFFFF; color: #18181B; font: 500 13px/1 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.012em; cursor: pointer; transition: background 110ms ease, border-color 110ms ease; } .ds-btn svg { width: 14px; height: 14px; } .ds-btn:hover { background: #F5F5F6; border-color: #C9C9CE; } .ds-btn:active { background: #EDEDEF; } .ds-btn:focus-visible { outline: 2px solid #15418E; outline-offset: 2px; border-radius: 3px; } .ds-btn[disabled] { opacity: .5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Botão primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação única da tela (executar a bateria), em acento sólido na barra superior.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 5.5v13l11-6.5z\"/></svg>Executar bateria</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #15418E; background: #15418E; color: #fff; font: 500 13px/1 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.012em; cursor: pointer; transition: background 110ms ease, border-color 110ms ease; } .ds-btn-primary svg { width: 14px; height: 14px; } .ds-btn-primary:hover { background: #1A4FAA; border-color: #1A4FAA; } .ds-btn-primary:active { background: #15418E; } .ds-btn-primary:focus-visible { outline: 2px solid #15418E; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo com rótulo em caixa alta; foco traz borda de acento mais halo de 3px.",
+      "html": "<label class=\"ds-field\"><span>Senha do cofre</span><input type=\"password\" value=\"finalpay-2026\"></label>",
+      "css": ".ds-field { display: block; max-width: 320px; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; } .ds-field > span { display: block; margin-bottom: 6px; font: 500 11px/1.3 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: #5C5C64; } .ds-field input { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #E1E1E3; background: #FFFFFF; color: #18181B; font: 400 13px/1.45 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; transition: border-color 110ms ease, box-shadow 110ms ease; } .ds-field input:hover { border-color: #C9C9CE; } .ds-field input:focus-visible { border-color: #15418E; box-shadow: 0 0 0 3px #EEF2FA; outline: 2px solid #15418E; outline-offset: 1px; }"
+    },
+    {
+      "name": "Alternador segmented",
+      "kind": "custom",
+      "refersTo": "segmented",
+      "description": "Duas a três opções exclusivas; o estado vem de aria-pressed, não de uma classe.",
+      "html": "<div class=\"ds-segmented\" role=\"group\" aria-label=\"Tipo de entrada\"><button type=\"button\" aria-pressed=\"true\">Texto</button><button type=\"button\" aria-pressed=\"false\">Arquivo</button></div>",
+      "css": ".ds-segmented { display: inline-flex; padding: 2px; gap: 2px; background: #F5F5F6; border: 1px solid #E1E1E3; border-radius: 6px; } .ds-segmented button { border: 0; background: transparent; color: #55555C; cursor: pointer; padding: 5px 11px; border-radius: 4px; font: 500 12.5px/1 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; transition: background 110ms ease, color 110ms ease; } .ds-segmented button:hover { color: #18181B; } .ds-segmented button:focus-visible { outline: 2px solid #15418E; outline-offset: 2px; } .ds-segmented button[aria-pressed=\"true\"] { background: #FFFFFF; color: #18181B; border: 1px solid #E1E1E3; padding: 4px 10px; }"
+    },
+    {
+      "name": "Tag de estado",
+      "kind": "chip",
+      "refersTo": "tag-ok",
+      "description": "Estado com ponto de 5px mais rótulo em palavras; a cor é redundância, nunca a informação.",
+      "html": "<span class=\"ds-tag ds-tag-ok\">Aprovado</span> <span class=\"ds-tag ds-tag-warn\">Ressalva</span> <span class=\"ds-tag ds-tag-crit\">Falha</span> <span class=\"ds-tag\">Neutro</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; gap: 5px; height: 21px; padding: 0 7px; border-radius: 4px; border: 1px solid #E1E1E3; background: #FAFAFA; color: #55555C; font: 500 12.5px/1 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.005em; white-space: nowrap; } .ds-tag::before { content: \"\"; width: 5px; height: 5px; border-radius: 99px; background: currentColor; } .ds-tag-ok { background: #ECFDF3; border-color: #ABEFC6; color: #067647; } .ds-tag-warn { background: #FFFAEB; border-color: #FEDF89; color: #B54708; } .ds-tag-crit { background: #FEF3F2; border-color: #FECDCA; color: #B42318; }"
+    },
+    {
+      "name": "Painel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Contêiner de conteúdo: borda de 1px, raio de 8px, sem sombra; cabeçalho separado por divisor interno.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel-head\"><h3>Efeito avalanche</h3><span class=\"ds-tag ds-tag-ok\">Aprovado</span></div><div class=\"ds-panel-body\"><p class=\"ds-body\">Inverter 1 bit da entrada altera metade dos bits de saída.</p></div></div>",
+      "css": ".ds-panel { border: 1px solid #E1E1E3; border-radius: 8px; background: #FFFFFF; overflow: hidden; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181B; } .ds-panel-head { display: flex; align-items: baseline; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #EDEDEF; } .ds-panel-head h3 { margin: 0 auto 0 0; font: 600 14px/1.4 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.012em; } .ds-panel-body { padding: 16px; } .ds-panel-body .ds-body { margin: 0; font-size: 15px; line-height: 1.6; color: #55555C; max-width: 68ch; }"
+    },
+    {
+      "name": "Faixa de medidas",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Quatro números num contorno único, divididos por bordas de 1px: sem cartão por número.",
+      "html": "<div class=\"ds-measures\"><div><span class=\"ds-label\">Eventos</span><span class=\"ds-num\">2.000.000</span><span class=\"ds-meta\">lote completo</span></div><div><span class=\"ds-label\">Avalanche</span><span class=\"ds-num\">49,98 %</span><span class=\"ds-meta\">ideal 50,00</span></div><div><span class=\"ds-label\">Vazão</span><span class=\"ds-num\">18,4 MB/s</span><span class=\"ds-meta\">FPC-128</span></div><div><span class=\"ds-label\">Anomalias</span><span class=\"ds-num\">1.274</span><span class=\"ds-meta\">0,06 % do total</span></div></div>",
+      "css": ".ds-measures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid #E1E1E3; border-radius: 8px; overflow: hidden; background: #FFFFFF; } .ds-measures > div { padding: 16px 18px; border-left: 1px solid #EDEDEF; } .ds-measures > div:first-child { border-left: 0; } .ds-label { display: block; margin-bottom: 9px; font: 500 11px/1.3 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: #5C5C64; } .ds-num { display: block; font: 500 26px/1.08 'Geist Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; color: #18181B; } .ds-meta { display: block; margin-top: 7px; font: 400 12.5px/1.55 'Geist', ui-sans-serif, system-ui, sans-serif; color: #5C5C64; }"
+    },
+    {
+      "name": "Item de navegação",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Destino do rail; o quadrado numerado carrega informação (a ordem da arquitetura).",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Seções\"><span class=\"ds-label\">Arquitetura</span><button class=\"ds-nav-item\" aria-current=\"page\"><span class=\"ds-nav-num\">1</span>Entrada e cofre</button><button class=\"ds-nav-item\"><span class=\"ds-nav-num\">2</span>Cifragem FPC-128</button></nav>",
+      "css": ".ds-rail { width: 248px; padding: 16px 12px; background: #FAFAFA; border-right: 1px solid #E1E1E3; } .ds-rail .ds-label { display: block; padding: 0 12px 8px; font: 500 11px/1.3 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: #5C5C64; } .ds-nav-item { width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 12px; margin-bottom: 1px; border: 0; border-radius: 6px; background: transparent; color: #55555C; font: 500 13px/1.3 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.012em; text-align: left; cursor: pointer; transition: background 110ms ease, color 110ms ease; } .ds-nav-item:hover { background: #EDEDEF; color: #18181B; } .ds-nav-item:focus-visible { outline: 2px solid #15418E; outline-offset: 2px; } .ds-nav-item[aria-current=\"page\"] { background: #EEF2FA; color: #15418E; font-weight: 600; } .ds-nav-num { flex: none; width: 19px; height: 19px; border-radius: 4px; border: 1px solid #E1E1E3; background: #FFFFFF; display: grid; place-items: center; font: 500 10.5px/1 'Geist Mono', ui-monospace, Menlo, monospace; color: #5C5C64; } .ds-nav-item[aria-current=\"page\"] .ds-nav-num { background: #15418E; color: #fff; border-color: #15418E; }"
+    },
+    {
+      "name": "Tabela de dados",
+      "kind": "custom",
+      "refersTo": "table-header",
+      "description": "Cabeçalho fixo em estilo de rótulo; número em mono tabular alinhado à direita.",
+      "html": "<div class=\"ds-table-wrap\"><table class=\"ds-table\"><thead><tr><th>Operação</th><th class=\"ds-n\">Bits</th><th class=\"ds-n\">Tempo (ms)</th></tr></thead><tbody><tr><td>Cifragem FPC-128</td><td class=\"ds-n\">128</td><td class=\"ds-n\">12,480</td></tr><tr><td>Variante sem difusão</td><td class=\"ds-n\">128</td><td class=\"ds-n\">9,315</td></tr></tbody></table></div>",
+      "css": ".ds-table-wrap { max-height: 380px; overflow: auto; border: 1px solid #E1E1E3; border-radius: 8px; } .ds-table { width: 100%; border-collapse: collapse; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; color: #18181B; font-size: 14px; } .ds-table th, .ds-table td { text-align: left; padding: 9px 16px; border-bottom: 1px solid #EDEDEF; } .ds-table thead th { font: 500 11px/1.3 'Geist', ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: #5C5C64; background: #FAFAFA; border-bottom: 1px solid #E1E1E3; position: sticky; top: 0; } .ds-table tbody tr:last-child td { border-bottom: 0; } .ds-table tbody tr:hover { background: #FAFAFA; } .ds-table td.ds-n { text-align: right; font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: 12.5px; } .ds-table th.ds-n { text-align: right; }"
+    },
+    {
+      "name": "Nota de ressalva",
+      "kind": "custom",
+      "refersTo": "note-warn",
+      "description": "A ressalva anda junto do resultado; texto escurecido para manter contraste sobre o âmbar.",
+      "html": "<div class=\"ds-note ds-note-warn\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4 2.8 20h18.4z\"/><path d=\"M12 10v4M12 17h.01\"/></svg><span>Cifra autoral não auditada: serve de demonstração, não de produção.</span></div>",
+      "css": ".ds-note { display: flex; gap: 9px; padding: 11px 13px; border-radius: 6px; border: 1px solid #E1E1E3; background: #FAFAFA; font: 400 13px/1.55 'Geist', ui-sans-serif, system-ui, sans-serif; color: #55555C; } .ds-note svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: #5C5C64; } .ds-note-warn { background: #FFFAEB; border-color: #FEDF89; color: #7A3A09; } .ds-note-warn svg { color: #B54708; }"
+    },
+    {
+      "name": "Dica de gráfico",
+      "kind": "custom",
+      "refersTo": "tip",
+      "description": "Única superfície escura e única sombra decorativa do sistema; valor sempre em mono tabular.",
+      "html": "<div class=\"ds-tip\" data-show=\"1\"><div class=\"ds-tip-key\">rodada 14</div><div><i style=\"display:inline-block;width:7px;height:7px;border-radius:2px;background:#2056C7;margin-right:5px\"></i>FPC-128 <b>49,98</b></div><div><i style=\"display:inline-block;width:7px;height:7px;border-radius:2px;background:#C2410C;margin-right:5px\"></i>Sem difusão <b>6,12</b></div></div>",
+      "css": ".ds-tip { display: inline-block; padding: 7px 9px; border-radius: 6px; background: #18181B; color: #FAFAFA; border: 1px solid #2A2A30; box-shadow: 0 4px 12px rgb(24 24 27 / 18%); font: 400 12px/1.45 'Geist', ui-sans-serif, system-ui, sans-serif; white-space: nowrap; opacity: 0; transition: opacity 90ms ease; } .ds-tip[data-show=\"1\"] { opacity: 1; } .ds-tip b { font-family: 'Geist Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500; } .ds-tip-key { color: #C9C9CE; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Instrumento de Medição",
+    "overview": "O padrão da categoria — um dashboard de produto convencional — executado no acabamento de Linear e Vercel/Geist, e não na sua versão genérica. A tela é um instrumento: quase monocromática sobre fundo claro, separada por bordas de 1px, sem nenhuma textura competindo com um número. O valor visual vem da precisão dos cinzas, do alinhamento e da tipografia tabular, nunca de um motivo decorativo.\n\nDensidade alta, mas calibrada para duas distâncias de leitura: a tela é vista projetada em sala de aula, a vários metros, e também sozinha num notebook. Por isso a interface opera a 14px enquanto o texto corrido sobe para 15px e as evidências centrais aparecem em 26px ou 46px de Geist Mono. Cor aparece em dois trabalhos e só neles: estado e série de dados. Todo o resto é cinza.\n\nRecusas confirmadas no artefato: painel de segurança enfeitado (fundo escuro com neon, cartão de sombra suave, azul de template) e mundo decorativo. A cena de uso decide: projetor de sala com luz acesa lava fundo escuro.",
+    "keyCharacteristics": [
+      "Quase monocromático sobre branco, onze passos de cinza frio.",
+      "Separação por borda de 1px; uma única sombra em todo o sistema.",
+      "Um acento institucional (#15418E), reservado a estado ativo, link e foco.",
+      "Toda grandeza medida em Geist Mono com tabular-nums.",
+      "Estado sempre com rótulo em palavras ao lado da cor.",
+      "Ícones em SVG autoral, traço único de 1,5px."
+    ],
+    "rules": [
+      { "name": "A Regra do Rótulo Junto", "body": "Nenhum estado é transmitido só por cor. Toda tag carrega palavra; o ponto de 5px é redundância, não informação. Item ativo muda cor, peso (600) e aria-current. Gráfico carrega resumo em palavras.", "section": "colors" },
+      { "name": "A Regra dos Dois Trabalhos da Cor", "body": "Cor cromática só aparece como estado ou como série de dados. Hierarquia, superfície e profundidade são sempre cinza. Um painel colorido \"porque é importante\" está fora do sistema.", "section": "colors" },
+      { "name": "A Regra do Cromo Tematizado", "body": "As superfícies do navegador fazem parte da paleta: seleção em #CFDDF5, cursor e anel de foco em #15418E, barra de rolagem fina com polegar #C9C9CE sobre trilha transparente, link com acento e sublinhado de 1px a 3px de offset. Um azul de sistema ou uma rolagem padrão quebraria o quase-monocromático exatamente na borda da janela.", "section": "colors" },
+      { "name": "A Regra do Cinza de Texto", "body": "#8F8F96 fica em 3,21:1: serve a traço, tracejado e cromo. Texto começa em #5C5C64.", "section": "colors" },
+      { "name": "A Regra Tabular", "body": "Toda grandeza medida — número, serial, hash, base64, rótulo de eixo, célula numérica, valor de ficha, valor de dica — é Geist Mono com font-variant-numeric: tabular-nums. A largura não pode dançar entre redesenhos. Número alinha à direita em tabela e em ficha técnica; o cabeçalho dessas colunas volta para a sans.", "section": "typography" },
+      { "name": "A Regra da Resposta em Palavras", "body": "Mono fica reservado para número. Resposta em palavras é sans, mesmo a 46px. Mono como figurino de \"tela técnica\" está fora.", "section": "typography" },
+      { "name": "A Regra do Rótulo Não-Kicker", "body": "O estilo de rótulo em caixa alta pertence a campo, cabeçalho de tabela e grupo de navegação. Nenhuma página abre com uma linha em caixa alta acima do título.", "section": "typography" },
+      { "name": "A Regra dos Dois Pontos de Quebra", "body": "Em ≤1080px as grades de 3 e 4 colunas caem para 2 e a faixa de medidas vira 2x2, reconstruindo as bordas. Em ≤860px a casca se desmonta: rail a 0px, coluna única, rail como faixa horizontal rolável, barra superior a 16px sem a tag da marca nem o estado da bateria, grades em uma coluna, display e headline a 22px e destaques de 46px a 32px.", "section": "layout" },
+      { "name": "A Regra do min-width: 0", "body": "Item de grade tem min-width: auto por padrão: sem zerar, a linha rolável do rail estica a coluna e a página inteira vaza de lado no celular. Vale para a casca, para as colunas e para a barra superior.", "section": "layout" },
+      { "name": "A Regra da Borda em Vez da Sombra", "body": "Um bloco novo se separa com 1px solid #E1E1E3 e raio de 8px. Se a tentação for uma sombra suave, a resposta é borda mais troca de fundo. A exceção é nominal e única: a dica de gráfico.", "section": "elevation" },
+      { "name": "A Regra do Painel Sem Cartão Dentro", "body": "Painel não aninha painel. Quatro números se separam por divisores de 1px dentro de um único contorno, não por quatro caixas; tabela e gráfico entram com o corpo do painel sem padding, encostando na borda.", "section": "elevation" },
+      { "name": "A Regra do Único Movimento Autorado", "body": "Existe um só momento de animação no sistema: a curva de avalanche se desenha uma vez (stroke-dashoffset, 900ms, cubic-bezier(.16,1,.3,1), forwards). Fora dele só há transições funcionais de 90–120ms e o spinner de trabalho. Com prefers-reduced-motion: reduce, animações e transições caem para 1ms, a curva aparece inteira e o spinner congela.", "section": "components" }
+    ],
+    "dos": [
+      "Do separar com 1px solid #E1E1E3 e raio de 8px, e dar profundidade trocando o fundo entre branco, #FAFAFA e #F5F5F6.",
+      "Do colocar toda grandeza medida em Geist Mono com tabular-nums, alinhada à direita quando vive em coluna.",
+      "Do acompanhar toda cor de estado de um rótulo em palavras — a cor é redundância.",
+      "Do manter o texto corrido a 15px e travado em 68ch: a tela é lida também projetada, a vários metros.",
+      "Do declarar min-height em qualquer host que recebe dado assíncrono, antes de preencher.",
+      "Do declarar data-resumo em todo gráfico novo, com a leitura do dado em palavras.",
+      "Do desenhar ícone novo como <symbol> no sprite, viewBox 0 0 24 24, traço de 1,5px em currentColor.",
+      "Do manter contraste em AA para texto comum e AAA para número de destaque, pelo projetor de sala com luz acesa; texto começa em #5C5C64 (6,62:1).",
+      "Do manter um h1 por destino, seção em h2 e o skip link como primeiro focável; nenhuma regra remove outline sem pôr outro anel no lugar."
+    ],
+    "donts": [
+      "Don't usar sombra decorativa. Nenhum cartão flutua; a única sombra não-foco do sistema é a da dica de gráfico.",
+      "Don't aninhar cartão dentro de cartão: divisor de 1px dentro de um contorno único resolve.",
+      "Don't abrir uma página com linha em caixa alta acima do título. O estilo de rótulo é de campo, de cabeçalho de tabela e de grupo de navegação.",
+      "Don't usar mono como figurino: resposta em palavras é sans, mesmo a 46px.",
+      "Don't transmitir estado só por cor — um ponto verde sem a palavra ao lado está fora.",
+      "Don't usar emoji ou ícone de fonte no lugar de SVG.",
+      "Don't introduzir fundo escuro com neon ou azul de template: a cena de uso (projetor com luz acesa) lava fundo escuro.",
+      "Don't carregar fonte por CDN nem cair em fonte de sistema para display: as duas famílias são auto-hospedadas em woff2.",
+      "Don't pôr texto sobre #8F8F96 (3,21:1); ele serve a traço e cromo.",
+      "Don't abrir um quarto slot de série de dados: a validação cobre três.",
+      "Don't escrever valor de espaço solto em atributo style; use a escala."
+    ]
+  }
+}
