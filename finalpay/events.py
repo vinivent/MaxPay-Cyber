@@ -43,7 +43,18 @@ NOMES_CURTOS = {
     "normal": "Normal",
     "comportamento_incomum": "Incomum",
 }
-NOMES_EXIBICAO.update(NOMES_CURTOS)
+# Nome completo, usado em tabela, relatorio e slide. O curto fica so no eixo
+# de grafico, onde nao cabe mais. Os dois precisam dizer a mesma coisa.
+NOMES_LONGOS = {
+    "forca_bruta_login": "Força bruta de login",
+    "falhas_decifragem": "Falhas de decifragem",
+    "adulteracao_arquivo": "Adulteração de arquivo",
+    "acesso_atipico": "Acesso atípico",
+    "surto_de_eventos": "Surto de eventos",
+    "comportamento_incomum": "Comportamento incomum",
+    "normal": "Normal",
+}
+NOMES_EXIBICAO.update(NOMES_LONGOS)
 
 TIPOS = ["cifragem", "decifragem", "autenticacao", "esteganografia", "acesso_arquivo", "transferencia"]
 TIPO_P = [0.26, 0.24, 0.20, 0.06, 0.12, 0.12]

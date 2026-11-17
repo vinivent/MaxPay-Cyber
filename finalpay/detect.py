@@ -133,10 +133,15 @@ def avaliar(pontuadas: pd.DataFrame) -> dict:
     f1 = 2 * precisao * revocacao / (precisao + revocacao) if precisao + revocacao else 0.0
     ap = float(average_precision_score(y, score))
 
+    # O posto no ranking de risco nao depende do orcamento de alertas; a
+    # revocacao depende. Sem os dois, um tipo que o modelo separa bem mas que
+    # nao cabe no orcamento parece um tipo que o modelo nao enxerga.
+    posto = pontuadas["score"].rank(ascending=False, method="min")
     por_tipo = []
     for rotulo, grupo in pontuadas[pontuadas["anomala"] == 1].groupby("rotulo_real"):
         detectadas = int(grupo["alerta"].sum())
         acertou = int((grupo.loc[grupo["alerta"], "tipo_previsto"] == rotulo).sum())
+        postos = posto.loc[grupo.index]
         por_tipo.append({
             "tipo": rotulo,
             "janelas": int(len(grupo)),
@@ -144,6 +149,10 @@ def avaliar(pontuadas: pd.DataFrame) -> dict:
             "revocacao_pct": round(100 * detectadas / len(grupo), 1),
             "tipo_correto": acertou,
             "acerto_tipo_pct": round(100 * acertou / detectadas, 1) if detectadas else 0.0,
+            "posto_mediano": int(postos.median()),
+            "percentil_mediano": round(100 * postos.median() / len(pontuadas), 2),
+            "posto_melhor": int(postos.min()),
+            "posto_pior": int(postos.max()),
         })
 
     return {

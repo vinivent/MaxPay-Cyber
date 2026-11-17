@@ -1,4 +1,20 @@
-"""FPC-128: cifra de bloco simetrica autoral do FinalPay (rede SPN, blocos de 128 bits).
+"""FPC-128: cifra de bloco do FinalPay (rede SPN, blocos de 128 bits).
+
+Projeto proprio dentro de uma familia conhecida. A estrutura (SPN com S-box
+baseada em inverso multiplicativo, permutacao de bytes e difusao por matriz MDS)
+e a mesma do AES, porque e ela que garante as boas propriedades. Os tres
+componentes, porem, sao escolha nossa e nao coincidem com os do AES:
+
+  * S-box      inverso em GF(2^8) com transformacao afim propria
+               (rotacoes 0,1,2,3,5 e constante 0x0D). Difere da do AES nas 256
+               posicoes, mantendo uniformidade diferencial 4 e zero ponto fixo.
+  * Permutacao deslocamentos de linha (0,2,3,1), contra (0,1,2,3) do AES.
+  * Difusao    matriz circulante (1,1,3,2), verificada MDS, contra (2,3,1,1).
+
+Cada escolha foi encontrada por busca e so adotada apos verificacao: bijecao,
+ausencia de ponto fixo, uniformidade diferencial e propriedade MDS.
+O escalonamento de chaves e inteiramente diferente do Rijndael (HKDF sobre
+HMAC-SHA256), assim como a derivacao por mensagem e o envelope autenticado.
 
 Estrutura por rodada, atendendo aos requisitos da Parte 2 do projeto:
   AddRoundKey  -> XOR com a subchave (confusao dependente da chave)
@@ -24,6 +40,14 @@ import numpy as np
 
 BLOCK = 16
 DEFAULT_ROUNDS = 14
+
+# Parametros do projeto da cifra. Ver `scripts` do relatorio para a busca que
+# os produziu; cada um e verificado no proprio modulo de testes.
+SBOX_ROTACOES = (0, 1, 2, 3, 5)
+SBOX_CONSTANTE = 0x0D
+DESLOCAMENTOS = (0, 2, 3, 1)
+MDS = (1, 1, 3, 2)
+INV_MDS = (11, 14, 9, 13)
 MAGIC = b"FPAY01"
 HEADER = struct.Struct(">6sBBB16s12sQ")  # magic, modo, rodadas, flags, salt, nonce, tamanho
 TAG_LEN = 32
@@ -60,19 +84,19 @@ def gf_mul(a: int, b: int) -> int:
 
 
 def _build_sbox() -> np.ndarray:
-    """Inverso multiplicativo em GF(2^8) seguido de transformacao afim.
+    """Inverso multiplicativo em GF(2^8) seguido de transformacao afim propria.
 
-    Construcao classica: o inverso garante alta nao-linearidade e a afim
-    elimina pontos fixos.
+    O inverso e o que da a nao-linearidade e a uniformidade diferencial 4; a
+    afim embaralha a estrutura algebrica e elimina pontos fixos. As rotacoes e
+    a constante sao escolha nossa, verificadas em `tests/`.
     """
     sbox = np.zeros(256, dtype=np.uint8)
     for i in range(256):
         inv = 0 if i == 0 else int(GF_EXP[255 - int(GF_LOG[i])])
-        s = inv
-        for _ in range(4):
-            inv = ((inv << 1) | (inv >> 7)) & 0xFF
-            s ^= inv
-        sbox[i] = s ^ 0x63
+        y = 0
+        for k in SBOX_ROTACOES:
+            y ^= ((inv << k) | (inv >> (8 - k))) & 0xFF
+        sbox[i] = y ^ SBOX_CONSTANTE
     return sbox
 
 
@@ -85,11 +109,34 @@ def _invert(table: np.ndarray) -> np.ndarray:
 SBOX = _build_sbox()
 INV_SBOX = _invert(SBOX)
 
-# Permutacao de bytes (ShiftRows sobre o estado 4x4 em ordem coluna-maior).
-SHIFT_ROWS = np.array([(i + 4 * (i % 4)) % 16 for i in range(16)], dtype=np.intp)
+def _permutacao() -> np.ndarray:
+    """Permutacao de bytes sobre o estado 4x4 em ordem coluna-maior.
+
+    Cada linha desliza por `DESLOCAMENTOS[linha]` colunas. Como os quatro
+    deslocamentos sao distintos, cada coluna de saida recebe um byte de cada
+    coluna de entrada, que e o que permite a difusao se completar em 2 rodadas.
+    """
+    perm = np.zeros(16, dtype=np.intp)
+    for coluna in range(4):
+        for linha in range(4):
+            perm[linha + 4 * coluna] = linha + 4 * ((coluna + DESLOCAMENTOS[linha]) % 4)
+    return perm
+
+
+SHIFT_ROWS = _permutacao()
 INV_SHIFT_ROWS = np.argsort(SHIFT_ROWS).astype(np.intp)
 
-MUL = {c: np.array([gf_mul(c, i) for i in range(256)], dtype=np.uint8) for c in (1, 2, 3, 9, 11, 13, 14)}
+
+def _tabela_multiplicacao() -> np.ndarray:
+    """Tabela 256x256 de multiplicacao em GF(2^8), para o MixColumns vetorizado."""
+    log = GF_LOG.astype(np.int32)
+    tab = GF_EXP[(log[:, None] + log[None, :]) % 255].astype(np.uint8)
+    tab[0, :] = 0
+    tab[:, 0] = 0
+    return tab
+
+
+MUL = _tabela_multiplicacao()
 
 
 def _mix(state: np.ndarray, coeffs: tuple[int, int, int, int]) -> np.ndarray:
@@ -105,11 +152,11 @@ def _mix(state: np.ndarray, coeffs: tuple[int, int, int, int]) -> np.ndarray:
 
 
 def mix_columns(state: np.ndarray) -> np.ndarray:
-    return _mix(state, (2, 3, 1, 1))
+    return _mix(state, MDS)
 
 
 def inv_mix_columns(state: np.ndarray) -> np.ndarray:
-    return _mix(state, (14, 11, 13, 9))
+    return _mix(state, INV_MDS)
 
 
 # --------------------------------------------------------------------------

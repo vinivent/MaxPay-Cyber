@@ -48,6 +48,10 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Qualquer regra de display com classe vence o [hidden] do navegador por
+   especificidade. Sem isto, campos marcados como ocultos continuam na tela. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -361,6 +365,31 @@ pre.code.wrap { white-space: pre-wrap; word-break: break-word; }
 #ecb-imagens { min-height: 300px; }
 .table-wrap:empty, table:empty { min-height: 160px; }
 dl.spec:empty { min-height: 260px; display: block; }
+
+/* ---------- lupa: comparar antes e depois em tela cheia ---------- */
+.lupa {
+  position: fixed; inset: 0; z-index: 60; display: none;
+  background: color-mix(in srgb, var(--gray-10) 92%, transparent);
+  padding: 24px; flex-direction: column; gap: 16px;
+}
+.lupa[open] { display: flex; }
+.lupa-topo { display: flex; align-items: center; gap: 14px; flex: none; }
+.lupa-topo .h3 { color: var(--gray-0); }
+.lupa-topo .meta { color: var(--gray-5); }
+.lupa-palco {
+  flex: 1; min-height: 0; display: grid; place-items: center;
+}
+.lupa-palco img {
+  max-width: 100%; max-height: 100%; display: block;
+  border: 1px solid var(--gray-8); border-radius: var(--r);
+  image-rendering: pixelated; background: var(--gray-9);
+}
+.lupa .segmented { background: var(--gray-9); border-color: var(--gray-8); }
+.lupa .segmented button { color: var(--gray-5); }
+.lupa .segmented button[aria-pressed="true"] { background: var(--gray-10); color: var(--gray-0); border-color: var(--gray-8); }
+.lupa .btn { background: transparent; color: var(--gray-2); border-color: var(--gray-8); }
+.lupa .btn:hover { background: var(--gray-9); border-color: var(--gray-6); }
+img.ampliavel { cursor: zoom-in; }
 
 /* ---------- utilidades ---------- */
 .sr-only {

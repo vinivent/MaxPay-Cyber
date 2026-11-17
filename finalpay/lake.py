@@ -138,4 +138,8 @@ def janelas(con, minutos: int = JANELA_MINUTOS, min_eventos: int = 5) -> pd.Data
         LEFT JOIN habitual_ip hi ON hi.usuario = e.usuario AND hi.ip = e.ip
         GROUP BY 1, 2
         HAVING count(*) >= {min_eventos}
+        -- Ordem fixa de proposito. O DuckDB agrega em paralelo e devolve as
+        -- linhas em ordem arbitraria; o Isolation Forest subamostra por indice,
+        -- entao a mesma base daria resultados diferentes a cada execucao.
+        ORDER BY e.usuario, janela
     """).df()

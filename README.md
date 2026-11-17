@@ -1,13 +1,13 @@
-# FinalPay — Sistema Criptográfico e Análise de Ataques
+# FinalPay: Sistema Criptográfico e Análise de Ataques
 
 Cofre criptográfico de um banco digital fictício que **mede a própria segurança**.
-Cifra transações com um algoritmo simétrico autoral (FPC-128), esconde o resultado
+Cifra transações com um algoritmo simétrico próprio (FPC-128), esconde o resultado
 dentro de imagens, registra ~2 milhões de eventos num lago de dados, detecta
-comportamento anormal com aprendizado de máquina — e então **ataca a si mesmo**
+comportamento anormal com aprendizado de máquina, e então **ataca a si mesmo**
 com força bruta, criptanálise diferencial e análise estatística para dizer, com
 números, se é seguro.
 
-> **Disciplina:** Cibersegurança Aplicada a Dados e IA — CESAR School
+> **Disciplina:** Cibersegurança Aplicada a Dados e IA, CESAR School
 > **Professora:** Renatta Nigro
 > **Grupo:** Claudio Alves, Ian Nunes, Maria Augusta, Gabriel Lima, Gabriel Rodrigues, Vinicius Ventura
 
@@ -43,7 +43,7 @@ python -m finalpay.slides # regera docs/slides/index.html
 | # | Camada da arquitetura | Onde está | O que faz |
 |---|---|---|---|
 | 1 | Entrada de dados | `finalpay/api.py` | texto, arquivos e imagens |
-| 2 | Criptografia | `finalpay/cipher.py`, `finalpay/baseline.py` | FPC-128 autoral + AES-256-GCM |
+| 2 | Criptografia | `finalpay/cipher.py`, `finalpay/baseline.py` | FPC-128 próprio + AES-256-GCM |
 | 3 | Esteganografia | `finalpay/stego.py` | LSB em PNG, posições derivadas da chave |
 | 4 | Big Data | `finalpay/events.py`, `finalpay/lake.py` | Parquet particionado + DuckDB |
 | 5 | Inteligência Artificial | `finalpay/detect.py` | Isolation Forest sobre janelas |
@@ -111,14 +111,14 @@ formal de resistência. Uma cifra só se torna confiável depois de anos de
 tentativa pública de quebra. É exatamente por isso que a camada AES-256 existe no
 sistema: o FPC-128 é o objeto de estudo, o AES-256 é o que protegeria o dinheiro.
 
-Os eventos de segurança são **sintéticos e rotulados** — é o que permite medir
+Os eventos de segurança são **sintéticos e rotulados**, é o que permite medir
 precisão e revocação do detector. Não há dados de usuários reais.
 
 ---
 
 ## Entregáveis
 
-- `docs/RELATORIO.md` — relatório técnico completo (gerado dos resultados)
-- `docs/slides/index.html` — slides da apresentação (abra no navegador; `P` imprime em PDF)
-- `results/experimentos.json` — todas as medições, regeneráveis por comando
-- `DESIGN.md` — o sistema visual do dashboard
+- `docs/RELATORIO.md`, relatório técnico completo (gerado dos resultados)
+- `docs/slides/index.html`, slides da apresentação (abra no navegador; `P` imprime em PDF)
+- `results/experimentos.json`, todas as medições, regeneráveis por comando
+- `DESIGN.md`, o sistema visual do dashboard

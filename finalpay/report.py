@@ -44,6 +44,18 @@ NOMES = {
 }
 
 
+def _revoc_em(ia: dict, fracao: float, tipo: str) -> float:
+    """Revocacao estimada do tipo num orcamento maior, pelo posto das janelas."""
+    alvo = fracao * ia["janelas"]
+    t = next(r for r in ia["por_tipo"] if r["tipo"] == tipo)
+    if t["posto_pior"] <= alvo:
+        return 100.0
+    if t["posto_melhor"] > alvo:
+        return 0.0
+    # interpolacao simples entre melhor e pior posto
+    return max(0.0, min(100.0, 100 * (alvo - t["posto_melhor"]) / (t["posto_pior"] - t["posto_melhor"])))
+
+
 def rot(chave: str) -> str:
     return NOMES.get(chave, str(chave).replace("_", " "))
 
@@ -51,9 +63,25 @@ def rot(chave: str) -> str:
 def n(x: float, casas: int = 2) -> str:
     """Numero no formato brasileiro."""
     if x is None:
-        return "—"
+        return "n/d"
     s = f"{x:,.{casas}f}"
     return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
+SUPERESCRITO = str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
+
+
+def sci(x: float, casas: int = 2) -> str:
+    """Notacao cientifica legivel. Um inteiro de 46 digitos nao se le."""
+    import math
+
+    if not x:
+        return "0"
+    expoente = int(math.floor(math.log10(abs(x))))
+    if -3 < expoente < 6:
+        return n(x, 0)
+    mantissa = x / 10**expoente
+    return f"{mantissa:.{casas}f}".replace(".", ",") + f"×10{str(expoente).translate(SUPERESCRITO)}"
 
 
 def i(x: float) -> str:
@@ -82,11 +110,12 @@ def gerar(res: dict) -> str:
     v, desemp = res["veredito"], res["desempenho"]
     proj = {p["bits"]: p for p in bf["projecao"] if p["cenario"] == "1 nucleo (medido)"}
     proj_gpu = {p["bits"]: p for p in bf["projecao"] if "GPU" in p["cenario"]}
+    surto = next(r for r in ia["por_tipo"] if r["tipo"] == "surto_de_eventos")
     rodada_difusao = v["efeito_avalanche"]["rodadas_ate_difusao_total"]
 
-    return f"""# FinalPay — Sistema Criptográfico e Análise de Ataques
+    return f"""# FinalPay, Sistema Criptográfico e Análise de Ataques
 
-**Disciplina:** Cibersegurança Aplicada a Dados e IA — CESAR School
+**Disciplina:** Cibersegurança Aplicada a Dados e IA: CESAR School
 **Professora:** Renatta Nigro
 **Grupo:** {", ".join(GRUPO)}
 **Data:** {datetime.now().strftime("%d/%m/%Y")}
@@ -101,13 +130,13 @@ def gerar(res: dict) -> str:
 ## 1. Resumo executivo
 
 O FinalPay é o cofre criptográfico de um banco digital fictício. Ele cifra
-transações, documentos e imagens com uma cifra de bloco autoral (**FPC-128**),
+transações, documentos e imagens com uma cifra de bloco própria (**FPC-128**),
 esconde o resultado dentro de imagens por esteganografia, registra cada operação
 num lago de dados de {i(bd["resumo"]["eventos"])} eventos e usa aprendizado de
 máquina para apontar comportamento anormal.
 
 O mesmo sistema ataca a si próprio. Os três ataques exigidos pelo enunciado
-— força bruta, diferencial e estatístico — rodam contra duas versões da cifra:
+, força bruta, diferencial e estatístico, rodam contra duas versões da cifra:
 a íntegra, de {c["rodadas"]} rodadas com difusão, e uma variante deliberadamente
 enfraquecida, de 1 rodada sem MixColumns. **A variante enfraquecida cai; a
 íntegra não cede a nenhum dos três.** É essa comparação que sustenta o veredito
@@ -117,7 +146,7 @@ da Parte 4, e não uma afirmação de que "o sistema é seguro".
 |---|---|---|---|
 | Efeito avalanche | **{n(av["media_pct"])}%** | {n(fraco["media_pct"])}% | {n(aes["media_pct"])}% |
 | Entropia da saída (bits/byte) | **{n(ctr["entropia_bits_por_byte"], 4)}** | {n(fraco_ecb["entropia_bits_por_byte"], 4)} | {n(aes_perf["entropia_bits_por_byte"], 4)} |
-| Texto recuperado por análise de frequência | {n(freq_c["acuracia_pct"])}% | **{n(freq_f["acuracia_pct"])}%** | — |
+| Texto recuperado por análise de frequência | {n(freq_c["acuracia_pct"])}% | **{n(freq_f["acuracia_pct"])}%** |: |
 | Distinguível de permutação aleatória | Não | **Sim** | Não |
 
 ---
@@ -129,7 +158,7 @@ As seis camadas pedidas no enunciado, e onde cada uma vive no código:
 | # | Camada | Função | Implementação |
 |---|---|---|---|
 | 1 | Entrada de dados | Texto, arquivos e imagens | `finalpay/api.py` |
-| 2 | Criptografia | FPC-128 autoral + AES-256-GCM | `finalpay/cipher.py`, `finalpay/baseline.py` |
+| 2 | Criptografia | FPC-128 próprio + AES-256-GCM | `finalpay/cipher.py`, `finalpay/baseline.py` |
 | 3 | Esteganografia | Ocultação em imagens PNG | `finalpay/stego.py` |
 | 4 | Big Data | Geração, Parquet particionado, DuckDB | `finalpay/events.py`, `finalpay/lake.py` |
 | 5 | Inteligência Artificial | Isolation Forest sobre janelas | `finalpay/detect.py` |
@@ -179,9 +208,44 @@ de saída com probabilidade maior que 2^{n(c["log2_prob_diferencial"], 0)}.
 **Difusão.** O MixColumns multiplica cada coluna do estado por uma matriz MDS
 sobre GF(2⁸), espalhando um byte alterado sobre os quatro bytes da coluna. Junto
 com o ShiftRows, isso faz um único bit percorrer o bloco inteiro em poucas
-rodadas — medido na seção 6.1.
+rodadas, medido na seção 6.1.
 
-### 3.3 A chave nunca é fixa
+### 3.3 O que é nosso e o que vem da família do AES
+
+Esta é a pergunta que o trabalho precisa responder sem rodeios. A **estrutura**
+do FPC-128 é a mesma do AES, e isso é deliberado: é a rede SPN com S-box
+baseada em inverso multiplicativo em GF(2⁸) que garante as boas propriedades,
+e reinventá-la daria um resultado pior, não mais original. Os **três
+componentes concretos**, porém, são escolha nossa, e nenhum coincide com o do
+AES:
+
+{tabela(["Componente", "FPC-128 (nosso)", "AES", "Como foi escolhido"],
+        [["Transformação afim da S-box",
+          f"rotações {tuple(c['projeto']['sbox_rotacoes'])}, constante {c['projeto']['sbox_constante']}",
+          f"rotações {tuple(c['projeto']['sbox_rotacoes_aes'])}, constante {c['projeto']['sbox_constante_aes']}",
+          "busca exaustiva entre as afins invertíveis, exigindo bijeção, zero ponto fixo e uniformidade diferencial 4"],
+         ["Permutação de bytes",
+          f"deslocamentos {tuple(c['projeto']['deslocamentos'])}",
+          f"deslocamentos {tuple(c['projeto']['deslocamentos_aes'])}",
+          "deslocamentos distintos, para que cada coluna de saída receba um byte de cada coluna de entrada"],
+         ["Matriz de difusão",
+          f"circulante {tuple(c['projeto']['matriz_difusao'])}",
+          f"circulante {tuple(c['projeto']['matriz_difusao_aes'])}",
+          "busca entre circulantes de coeficientes pequenos, verificando MDS por todos os menores"],
+         ["Escalonamento de chaves",
+          "HKDF sobre HMAC-SHA256", "expansão do Rijndael",
+          "derivado do nonce da mensagem, o que torna as subchaves diferentes a cada operação"]])}
+
+A S-box resultante difere da do AES **nas 256 posições**. As propriedades que
+importam continuam no mesmo patamar, e foram medidas, não presumidas:
+uniformidade diferencial {c["ddt_maximo"]}, zero ponto fixo, difusão completa na
+rodada {rodada_difusao} e critério estrito de avalanche satisfeito em todas as
+16.384 células (§6.2).
+
+O teste `test_sbox_e_propria_e_nao_a_do_aes` existe exatamente para impedir que
+alguém reintroduza a construção do AES sem perceber.
+
+### 3.4 A chave nunca é fixa
 
 O enunciado exige que a chave influencie a cifragem e não seja fixa. Aqui são
 três camadas:
@@ -194,13 +258,13 @@ três camadas:
    subchaves de 16 bytes.
 
 Consequência verificável: cifrar o mesmo texto com a mesma senha duas vezes
-produz envelopes diferentes — confirmado pelo código
+produz envelopes diferentes, confirmado pelo código
 (`{c["ciframentos_distintos_mesma_entrada"]}`).
 
-### 3.4 Integridade
+### 3.5 Integridade
 
 O envelope é autenticado com HMAC-SHA256 no esquema *encrypt-then-MAC*. Alterar
-um único bit do texto cifrado faz a decifragem falhar em vez de devolver lixo —
+um único bit do texto cifrado faz a decifragem falhar em vez de devolver lixo 
 verificado (`{c["integridade_detecta_adulteracao"]}`). É esse mecanismo que o
 dashboard exibe como lacre íntegro ou violado.
 
@@ -221,7 +285,7 @@ texto/arquivo/imagem
 O modo CTR transforma a cifra de bloco em cifra de fluxo: o bloco cifrado é o
 contador, e o texto claro é combinado por XOR com esse fluxo. Isso elimina o
 preenchimento e, sobretudo, faz blocos claros iguais produzirem saídas
-diferentes — o problema que a seção 6.6 demonstra no modo ECB.
+diferentes, o problema que a seção 6.6 demonstra no modo ECB.
 
 ---
 
@@ -254,7 +318,7 @@ Reproduzíveis por `python -m finalpay.experiments` e verificados por
 ### 6.1 Efeito avalanche
 
 Inverter **um** bit do texto claro altera **{n(av["media_pct"])}%** dos bits do
-texto cifrado — o ideal é 50%. O desvio padrão medido foi {n(av["desvio_padrao"], 3)},
+texto cifrado, o ideal é 50%. O desvio padrão medido foi {n(av["desvio_padrao"], 3)},
 praticamente igual ao {n(v["efeito_avalanche"]["desvio_padrao_teorico"], 3)}
 esperado de uma distribuição binomial(128; 0,5). Em outras palavras, a saída se
 comporta como se cada bit fosse sorteado por moeda honesta.
@@ -267,7 +331,7 @@ a cifra opera com margem de segurança de {n(c["rodadas"] / max(rodada_difusao, 
 sobre o mínimo necessário.
 
 Comparações na mesma medição: AES-256 ficou em {n(aes["media_pct"])}% e a variante
-sem difusão, em **{n(fraco["media_pct"])}%** — ou seja, alterar um bit da entrada
+sem difusão, em **{n(fraco["media_pct"])}%**, ou seja, alterar um bit da entrada
 muda só {n(fraco["media_bits"], 1)} dos 128 bits de saída, deixando o resto do
 bloco intacto e visível ao atacante.
 
@@ -277,7 +341,7 @@ trocado na chave muda metade do texto cifrado.
 ### 6.2 Critério estrito de avalanche (SAC)
 
 O SAC exige que a inversão de qualquer bit *i* da entrada inverta qualquer bit
-*j* da saída com probabilidade 0,5 — nas 16.384 células da matriz 128×128.
+*j* da saída com probabilidade 0,5, nas 16.384 células da matriz 128×128.
 
 | Variante | Média | Desvio máximo | Limite (Bonferroni 5%) | Células fora | Satisfaz |
 |---|---|---|---|---|---|
@@ -292,7 +356,7 @@ acusaria falha onde não há.
 
 Taxa real medida nesta máquina: **{i(bf["chaves_por_segundo"])} chaves/s** (um
 núcleo, implementação vetorizada). Com entropia reduzida a {bf["bits_entropia"]} bits,
-a chave foi encontrada após {i(bf["chaves_testadas"])} tentativas — o ataque
+a chave foi encontrada após {i(bf["chaves_testadas"])} tentativas, o ataque
 funciona, o que valida a medição.
 
 Extrapolando a mesma taxa:
@@ -302,15 +366,15 @@ Extrapolando a mesma taxa:
          for p in bf["projecao"]])}
 
 Para os 256 bits do FPC-128 seriam necessários **{proj_gpu[256]["anos_fmt"]}**
-mesmo com um milhão de GPUs — cerca de
-{n(proj_gpu[256]["vezes_idade_universo"], 0)} vezes a idade do universo. O número
+mesmo com um milhão de GPUs, cerca de
+{sci(proj_gpu[256]["vezes_idade_universo"])} vezes a idade do universo. O número
 de rodadas não altera isso: o espaço de chaves é o mesmo na variante enfraquecida.
 
 **Ataque de dicionário.** Contra a senha do usuário, o PBKDF2 limita o atacante a
 {n(dic["tentativas_por_segundo"], 1)} tentativas por segundo. A senha fraca
 `{dic["senha_quebrada"]}` caiu em {n(dic["segundos"], 2)} s. Já uma senha forte de
 12 caracteres exigiria {dic["anos_forte_fmt"]}. **A senha, e não a cifra, é o elo
-mais fraco** — e é por isso que o alongamento de chave existe.
+mais fraco**, e é por isso que o alongamento de chave existe.
 
 ### 6.4 Ataque diferencial
 
@@ -332,7 +396,7 @@ aplicando sempre a mesma diferença de entrada:
           f'{i(d["distinguidor_fraco"]["ocorrencias"])} ocorrências',
           "Sim" if d["distinguidor_fraco"]["distinguivel"] else "Não"]])}
 
-Na cifra íntegra, as saídas são praticamente todas distintas — exatamente o que
+Na cifra íntegra, as saídas são praticamente todas distintas, exatamente o que
 se esperaria de uma permutação aleatória. Na variante enfraquecida,
 {i(d["distinguidor_fraco"]["ocorrencias"])} pares caem na **mesma** diferença de
 saída: é uma característica diferencial explorável, e o ataque tem por onde
@@ -358,7 +422,7 @@ O texto claro tem entropia {n(claro["entropia_bits_por_byte"], 4)} bits/byte e
 falha em todos os testes. A saída do FPC-128 em modo CTR tem
 {n(ctr["entropia_bits_por_byte"], 4)} bits/byte (máximo teórico 8), índice de
 coincidência {n(ctr["indice_coincidencia"], 6)} contra o 0,003906 de uma fonte
-uniforme, e χ² com p = {n(ctr["chi2_p_valor"], 4)} — não se rejeita a hipótese de
+uniforme, e χ² com p = {n(ctr["chi2_p_valor"], 4)}, não se rejeita a hipótese de
 uniformidade. Para efeito de controle, `/dev/urandom` na mesma medição deu
 entropia {n(urandom["entropia_bits_por_byte"], 4)} e p = {n(urandom["chi2_p_valor"], 4)}.
 **A saída da cifra é estatisticamente indistinguível de ruído do sistema
@@ -369,8 +433,7 @@ operacional.**
 Mensagens bancárias usam registros de largura fixa ({freq_f["posicoes_registro"]}
 bytes aqui), e isso tem consequência: sem o MixColumns, cada posição do bloco
 permanece uma substituição monoalfabética independente. A cifra apenas renomeia e
-reposiciona bytes. Um atacante que conheça o formato — realista num banco —
-levanta a frequência de referência e remapeia coluna a coluna.
+reposiciona bytes. Um atacante que conheça o formato, realista num banco, levanta a frequência de referência e remapeia coluna a coluna.
 
 | Alvo | Acerto | Linha de base* | Posições expostas | Quebrado |
 |---|---|---|---|---|
@@ -429,7 +492,7 @@ carga de {i(est["esteganalise"]["payload_da_comparacao_bytes"])} bytes
 O LSB sequencial clássico acende
 {est["esteganalise"]["segmentos_suspeitos"]["lsb_sequencial_sem_chave"]} segmentos;
 a versão do FinalPay, com posições derivadas da chave, acende
-**{est["esteganalise"]["segmentos_suspeitos"]["lsb_chaveado_finalpay"]}** — igual à
+**{est["esteganalise"]["segmentos_suspeitos"]["lsb_chaveado_finalpay"]}**, igual à
 imagem limpa. Espalhar os bits por uma permutação secreta não é detalhe de
 implementação: é o que remove a assinatura.
 
@@ -475,12 +538,20 @@ Revisando apenas {n(ia["pontos_de_operacao"][0]["orcamento_pct"], 2)}% das janel
 a precisão é de {n(ia["pontos_de_operacao"][0]["precisao"] * 100, 1)}%: quase todo
 alerta é real.
 
-Desempenho por tipo de anomalia — os cinco previstos no enunciado:
+Desempenho por tipo de anomalia, os cinco previstos no enunciado:
 
-{tabela(["Anomalia", "Janelas", "Detectadas", "Revocação", "Tipo classificado corretamente"],
+{tabela(["Anomalia", "Janelas", "Detectadas", "Revocação", "Posto mediano de risco", "Tipo correto"],
         [[rot(r["tipo"]), r["janelas"], r["detectadas"],
-          n(r["revocacao_pct"], 1) + "%", n(r["acerto_tipo_pct"], 1) + "%"]
-         for r in ia["por_tipo"]])}
+          n(r["revocacao_pct"], 1) + "%",
+          f'{i(r["posto_mediano"])} de {i(ia["janelas"])} ({n(r["percentil_mediano"], 2)}%)',
+          n(r["acerto_tipo_pct"], 1) + "%"]
+         for r in sorted(ia["por_tipo"], key=lambda x: x["posto_mediano"])])}
+
+O **posto mediano** mostra onde cada tipo cai no ranking de risco, e não depende do orçamento
+de alertas. Os quatro primeiros ficam no meio-milésimo mais arriscado. O surto de eventos fica
+no {n([r for r in ia["por_tipo"] if r["tipo"] == "surto_de_eventos"][0]["percentil_mediano"], 2)}%
+mais arriscado, o que é longe de passar despercebido, mas não cabe no 1% que a equipe aceita
+revisar.
 
 A anomalia mais difícil é o **surto de eventos**: ela não gera falha nenhuma, só
 volume. As que falham alguma coisa são detectadas quase integralmente.
@@ -497,7 +568,7 @@ O AES é {n(desemp["razao_aes_sobre_fpc"], 1)}× mais rápido, e isso era espera
 
 ---
 
-## 7. Parte 4 — as quatro perguntas
+## 7. Parte 4: as quatro perguntas
 
 ### O sistema apresenta efeito avalanche?
 
@@ -505,7 +576,7 @@ O AES é {n(desemp["razao_aes_sobre_fpc"], 1)}× mais rápido, e isso era espera
 
 ### Existem padrões na saída?
 
-**{v["padroes_na_saida"]["resposta"]}** — no modo CTR.
+**{v["padroes_na_saida"]["resposta"]}**, no modo CTR.
 {v["padroes_na_saida"]["justificativa"]}
 
 ### Qual ataque foi mais eficaz?
@@ -528,7 +599,7 @@ produzem resultados de naturezas diferentes e não se comparam por um número
 
 {chr(10).join("- " + x for x in v["e_seguro"]["a_favor"])}
 
-**Ressalvas — e elas não são formalidade:**
+**Ressalvas: e elas não são formalidade:**
 
 {chr(10).join("- " + x for x in v["e_seguro"]["ressalvas"])}
 
@@ -553,10 +624,13 @@ variante enfraquecida, que mostra **de onde** vem a segurança:
    cifra íntegra.
 3. **Força bruta é o ataque errado.** Inviável contra as duas variantes; a
    superfície real é a senha, e o PBKDF2 existe para encarecê-la.
-4. **A anomalia mais difícil é a que não quebra nada.** O surto de exfiltração,
-   sem falhas, teve revocação de
-   {n([r for r in ia["por_tipo"] if r["tipo"] == "surto_de_eventos"][0]["revocacao_pct"], 1)}%,
-   contra ~100% das que geram erro.
+4. **A anomalia mais difícil é a que não quebra nada.** O surto de exfiltração não gera
+   falha nenhuma, só volume: o modelo o coloca no **{n(surto["percentil_mediano"], 2)}% mais
+   arriscado** de {i(ia["janelas"])} janelas, mas ele fica fora do orçamento de
+   {i(ia["alertas"])} alertas, porque perde a disputa para anomalias que falham. Não é o
+   modelo que não enxerga; é o orçamento que não alcança. Dobrando o orçamento para 2%, a
+   revocação sobe de {n(surto["revocacao_pct"], 1)}% para
+   {n(_revoc_em(ia, 0.02, "surto_de_eventos"), 1)}%.
 
 Nada disso faz do FPC-128 uma cifra de produção. Ele não passou por
 criptanálise independente, não é de tempo constante, e não recebeu análise

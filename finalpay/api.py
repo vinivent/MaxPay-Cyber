@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import io
 import threading
 import time
 from collections import deque
@@ -24,7 +25,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from finalpay import baseline, cipher, experiments, lake, stego
+from finalpay import baseline, cipher, experiments, lake, report, slides, stego
 from finalpay.attacks import brute_force, differential, statistical
 from finalpay.metrics import shannon_entropy
 
@@ -32,6 +33,19 @@ WEB = Path(__file__).resolve().parent.parent / "web"
 MAX_BYTES = 12 * 1024 * 1024
 
 app = FastAPI(title="FinalPay", version="1.0", docs_url="/api/docs")
+
+
+@app.middleware("http")
+async def sem_cache_no_front(request, call_next):
+    """Impede o navegador de misturar HTML novo com JavaScript antigo.
+
+    Sem isto, uma versao em cache do app.js convive com um index.html recem
+    servido e a tela aparece vazia, sem erro nenhum.
+    """
+    resposta = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        resposta.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return resposta
 
 _estado: dict = {"resultados": None, "mtime": None, "executando": False, "erro": None}
 _operacoes: deque = deque(maxlen=200)
@@ -189,6 +203,50 @@ def decifrar(p: PedidoDecifrar) -> dict:
     }
 
 
+@app.get("/api/estego/portadora")
+def estego_portadora(tamanho: int = Query(360, ge=64, le=1024)) -> dict:
+    """Imagem de exemplo para quem quer testar a ocultacao sem ter um arquivo."""
+    from finalpay.attacks.statistical import _imagem_estruturada
+
+    buf = io.BytesIO()
+    _imagem_estruturada(tamanho).save(buf, "PNG")
+    bruto = buf.getvalue()
+    return {
+        "imagem_b64": base64.b64encode(bruto).decode(),
+        "bytes": len(bruto),
+        "capacidade_bytes": stego.capacity(bruto),
+        "dimensoes": [tamanho, tamanho],
+    }
+
+
+@app.get("/api/estego/exemplo")
+def estego_exemplo(
+    senha: str = Query("cofre-finalpay-2026", min_length=1),
+    tamanho: int = Query(360, ge=64, le=1024),
+) -> dict:
+    """Imagem de exemplo ja com uma mensagem escondida, pronta para revelar.
+
+    Serve para demonstrar a extracao sem precisar ter feito a ocultacao antes.
+    """
+    from finalpay.attacks.statistical import _imagem_estruturada
+
+    buf = io.BytesIO()
+    _imagem_estruturada(tamanho).save(buf, "PNG")
+    portadora = buf.getvalue()
+    mensagem = "TX884120 TED R$ 9.350,00 CT7781-4 Bradesco 17/11/2026 APROVADO"
+    envelope = cipher.encrypt(mensagem.encode(), senha)
+    marcada = stego.embed(portadora, envelope, senha)
+    _registrar("esteganografia", "FPC-128", "sucesso", len(envelope), 0, "exemplo para demonstração")
+    return {
+        "imagem_b64": base64.b64encode(marcada).decode(),
+        "portadora_b64": base64.b64encode(portadora).decode(),
+        "senha": senha,
+        "bytes_ocultos": len(envelope),
+        "dimensoes": [tamanho, tamanho],
+        "qualidade": stego.metrics(portadora, marcada),
+    }
+
+
 @app.get("/api/cofre/operacoes")
 def operacoes() -> dict:
     return {"operacoes": list(_operacoes), "total": len(_operacoes)}
@@ -314,6 +372,37 @@ def executar(
         raise HTTPException(409, "já existe uma bateria em execução")
     tarefas.add_task(_executar, rapido, n_eventos)
     return {"iniciado": True, "rapido": rapido, "n_eventos": n_eventos}
+
+
+# --------------------------------------------------------------------------
+# Relatorio e slides
+# --------------------------------------------------------------------------
+@app.get("/api/relatorio/markdown")
+def relatorio_markdown() -> FileResponse:
+    caminho = report.DOCS / "RELATORIO.md"
+    if not caminho.exists():
+        raise HTTPException(404, "relatório ainda não gerado: use 'Regerar a partir dos dados'")
+    return FileResponse(caminho, media_type="text/markdown", filename="FinalPay-relatorio.md")
+
+
+@app.get("/api/relatorio/slides")
+def relatorio_slides() -> FileResponse:
+    caminho = slides.DESTINO
+    if not caminho.exists():
+        raise HTTPException(404, "slides ainda não gerados: use 'Regerar a partir dos dados'")
+    return FileResponse(caminho, media_type="text/html")
+
+
+@app.post("/api/relatorio/regerar")
+def relatorio_regerar() -> dict:
+    """Regera relatorio e slides a partir da bateria atual."""
+    _resultados()  # 404/503 claro se ainda nao houver medicoes
+    r, s = report.main(), slides.main()
+    return {
+        "relatorio": str(r), "slides": str(s),
+        "relatorio_kb": round(r.stat().st_size / 1024, 1),
+        "slides_kb": round(s.stat().st_size / 1024, 1),
+    }
 
 
 @app.get("/api/saude")

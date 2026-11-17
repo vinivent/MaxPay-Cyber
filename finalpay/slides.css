@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+:root{
+  --tinta:#0A0A0C; --superficie:#141418; --superficie-2:#1B1B21;
+  --linha:#26262C; --linha-forte:#3E3E48;
+  --texto:#F2F2F4; --texto-2:#A0A0AA; --texto-3:#70707A;
+  --acento:#5B8DEF; --ok:#45C07E; --aviso:#E3A748; --crit:#EC6A5E;
+  --s1:#5B8DEF; --s2:#E0875A; --s3:#4FC2A8;
+  --sans:'Geist',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --margem:7vw;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--tinta);color:var(--texto);
+  font:400 16px/1.5 var(--sans);letter-spacing:-0.008em;-webkit-font-smoothing:antialiased}
+::selection{background:#24406E;color:#fff}
+:root{scrollbar-color:var(--linha-forte) transparent;scrollbar-width:thin}
+
+.deck{scroll-snap-type:y mandatory;overflow-y:auto;height:100vh}
+
+/* Swiss: campo estrito, tudo alinhado a esquerda, nada centralizado. */
+.slide{
+  scroll-snap-align:start;position:relative;height:100vh;
+  padding:0 var(--margem);display:flex;flex-direction:column;
+  background:var(--tinta);border-bottom:1px solid var(--linha);
+}
+.cab{
+  flex:none;display:flex;justify-content:space-between;align-items:baseline;
+  padding:5.2vh 0 14px;border-bottom:1px solid var(--linha);
+}
+.cab .secao{font:500 11px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--texto-3)}
+.cab .folio{font:500 11px/1 var(--mono);letter-spacing:.1em;color:var(--texto-3);font-variant-numeric:tabular-nums}
+/* Conteudo centrado na vertical: a tela esparsa deixa de parecer inacabada e a
+   densa continua cabendo, porque o grid so centra o que sobra. */
+.corpo{flex:1;display:grid;grid-template-columns:repeat(12,1fr);gap:0 28px;
+  align-content:safe center;padding:4vh 0 5vh}
+
+.sp3{grid-column:span 3}.sp4{grid-column:span 4}.sp5{grid-column:span 5}
+.sp6{grid-column:span 6}.sp7{grid-column:span 7}.sp8{grid-column:span 8}
+.sp9{grid-column:span 9}.sp12{grid-column:span 12}
+.linha-acima{border-top:1px solid var(--linha);padding-top:22px;margin-top:30px}
+
+h1,h2{margin:0;font-weight:600;letter-spacing:-0.035em;text-wrap:balance}
+h1{font-size:clamp(40px,5.4vw,78px);line-height:1.02}
+h2{font-size:clamp(28px,3.4vw,50px);line-height:1.06;margin-bottom:34px}
+p{margin:0;max-width:56ch}
+.lead{font-size:clamp(16px,1.25vw,20px);line-height:1.6;color:var(--texto-2)}
+.lead + .lead{margin-top:16px}
+.lead b,.lead strong{color:var(--texto);font-weight:500}
+.rotulo{display:block;font:500 11px/1.3 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--texto-3);margin-bottom:14px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.03em}
+.grande{display:block;font:500 clamp(34px,4.4vw,62px)/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.045em}
+.medio{display:block;font:500 clamp(22px,2.4vw,34px)/1.05 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.04em}
+.destaque{color:var(--acento)}
+.verde{color:var(--ok)} .vermelho{color:var(--crit)} .ambar{color:var(--aviso)}
+.muted{color:var(--texto-3)}
+
+/* faixa de medidas: celulas separadas por filete, rotulo sempre acima */
+.faixa{grid-column:span 12;display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--linha-forte);border-bottom:1px solid var(--linha)}
+.faixa>div{padding:24px 26px 24px 0;border-left:1px solid var(--linha)}
+.faixa>div:first-child{border-left:0;padding-left:0}
+.faixa>div:not(:first-child){padding-left:26px}
+.faixa .rotulo{min-height:2.4em}
+.faixa p{margin-top:12px;font-size:14px;color:var(--texto-3)}
+
+.ficha{border-top:1px solid var(--linha);padding:20px 0}
+.ficha .rotulo{margin-bottom:10px}
+.ficha p{margin-top:10px;font-size:14px;color:var(--texto-3)}
+
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:12px 16px 12px 0;border-bottom:1px solid var(--linha);vertical-align:top}
+thead th{font:500 11px/1.3 var(--sans);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--texto-3);border-bottom:1px solid var(--linha-forte);padding-bottom:12px}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-right:0}
+tbody tr:last-child td{border-bottom:0}
+td b{font-weight:500}
+
+.marca{display:inline-flex;align-items:center;gap:7px;font:500 13px/1 var(--sans);color:var(--texto-2)}
+.marca::before{content:"";width:7px;height:7px;flex:none;background:currentColor}
+.marca-ok{color:var(--ok)} .marca-crit{color:var(--crit)} .marca-aviso{color:var(--aviso)}
+
+pre{font-family:var(--mono);font-size:clamp(12px,.95vw,15px);line-height:1.8;
+  background:var(--superficie);border-left:2px solid var(--linha-forte);
+  padding:20px 24px;overflow:auto;margin:0;color:var(--texto-2)}
+pre b{color:var(--texto);font-weight:500}
+ul{margin:0;padding-left:0;list-style:none}
+li{padding-left:22px;position:relative;margin-bottom:16px;color:var(--texto-2);line-height:1.6}
+li::before{content:"";position:absolute;left:0;top:.62em;width:9px;height:1px;background:var(--linha-forte)}
+li b,li strong{color:var(--texto);font-weight:500}
+
+/* barras horizontais: Swiss prefere a comparacao direta a um grafico enfeitado */
+.barra{display:grid;grid-template-columns:minmax(150px,auto) 1fr auto;gap:18px;align-items:center;margin-bottom:14px}
+.barra .rotulo{margin:0;text-transform:none;letter-spacing:.02em;font-size:13px;color:var(--texto-2)}
+.barra .trilho{height:10px;background:var(--superficie-2)}
+.barra .preenche{height:100%;background:var(--s1)}
+.barra .preenche.fraca{background:var(--s2)}
+.barra .valor{font:500 15px/1 var(--mono);font-variant-numeric:tabular-nums;color:var(--texto)}
+
+/* ato: numeral enorme no campo, titulo rente a esquerda */
+.slide.ato .corpo{align-content:center}
+.ato-num{display:block;font:500 clamp(90px,15vw,220px)/.84 var(--mono);
+  letter-spacing:-0.06em;color:var(--superficie-2);margin-bottom:-.06em}
+.slide.capa .corpo{align-content:center}
+
+/* notas do apresentador: ocultas por padrao, tecla N revela */
+.notas{position:fixed;left:0;right:0;bottom:0;z-index:30;display:none;
+  background:#17171C;border-top:2px solid var(--acento);
+  padding:20px var(--margem) 22px;max-height:38vh;overflow:auto}
+body.com-notas .slide[data-ativo] .notas{display:block}
+.notas .rotulo{color:var(--acento);margin-bottom:10px}
+.notas p{font-size:17px;line-height:1.62;color:#E2E2E6;max-width:92ch}
+.notas p + p{margin-top:12px}
+
+.progresso{position:fixed;left:0;bottom:0;height:2px;width:0;background:var(--acento);z-index:40;transition:width .25s cubic-bezier(.16,1,.3,1)}
+body.com-notas .progresso{display:none}
+.dica{position:fixed;right:18px;bottom:14px;z-index:40;font:400 12px/1 var(--sans);
+  color:var(--texto-3);background:var(--superficie);border:1px solid var(--linha);padding:8px 11px}
+body.com-notas .dica{display:none}
+
+@media print{
+  @page{size:A4 landscape;margin:0}
+  body{background:var(--tinta)}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .deck{height:auto;overflow:visible}
+  .slide{height:100vh;page-break-after:always;border:0}
+  .dica,.progresso{display:none}
+  body.com-notas .notas{display:block;position:static;max-height:none;border-top:1px solid var(--linha-forte);padding:16px 0 0;margin-top:auto}
+}
+@media (max-width:900px){
+  .corpo{grid-template-columns:1fr;gap:24px}
+  .sp3,.sp4,.sp5,.sp6,.sp7,.sp8,.sp9,.sp12{grid-column:span 1}
+  .faixa{grid-column:span 1;grid-template-columns:1fr}
+  .faixa>div{border-left:0;border-top:1px solid var(--linha);padding-left:0}
+  .faixa>div:first-child{border-top:0}
+  .faixa>div:not(:first-child){padding-left:0}
+  .slide{height:auto;min-height:100vh}
+}

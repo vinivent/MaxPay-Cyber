@@ -60,7 +60,55 @@ def test_chave_errada_rejeitada():
 def test_sbox_bem_formada():
     assert len(set(cipher.SBOX.tolist())) == 256, "S-box precisa ser bijetiva"
     assert not any(i == v for i, v in enumerate(cipher.SBOX)), "sem pontos fixos"
+    assert not any((i ^ 0xFF) == v for i, v in enumerate(cipher.SBOX)), "sem pontos fixos opostos"
     assert np.array_equal(cipher.INV_SBOX[cipher.SBOX], np.arange(256))
+
+
+def test_sbox_e_propria_e_nao_a_do_aes():
+    """A S-box e nossa, nao a do AES. Este teste existe para que ninguem
+    reintroduza a construcao do AES sem perceber."""
+    aes_inicio = [0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5]
+    assert cipher.SBOX[:8].tolist() != aes_inicio
+    assert cipher.SBOX_ROTACOES != (0, 1, 2, 3, 4) or cipher.SBOX_CONSTANTE != 0x63
+    assert cipher.MDS != (2, 3, 1, 1), "a matriz de difusao tambem e nossa"
+    assert cipher.DESLOCAMENTOS != (0, 1, 2, 3), "a permutacao tambem e nossa"
+
+
+def test_matriz_de_difusao_e_mds():
+    """MDS: toda submatriz quadrada inversivel, o que da numero de ramificacao 5."""
+    import itertools
+
+    def det(M):
+        M = [linha[:] for linha in M]
+        n, d = len(M), 1
+        for col in range(n):
+            piv = next((r for r in range(col, n) if M[r][col]), None)
+            if piv is None:
+                return 0
+            if piv != col:
+                M[col], M[piv] = M[piv], M[col]
+            d = cipher.gf_mul(d, M[col][col])
+            inv = 0 if M[col][col] == 0 else int(cipher.GF_EXP[255 - int(cipher.GF_LOG[M[col][col]])])
+            for r in range(col + 1, n):
+                if M[r][col]:
+                    f = cipher.gf_mul(M[r][col], inv)
+                    for j in range(col, n):
+                        M[r][j] ^= cipher.gf_mul(f, M[col][j])
+        return d
+
+    M = [[cipher.MDS[(j - i) % 4] for j in range(4)] for i in range(4)]
+    for k in (1, 2, 3, 4):
+        for linhas in itertools.combinations(range(4), k):
+            for colunas in itertools.combinations(range(4), k):
+                menor = [[M[r][c] for c in colunas] for r in linhas]
+                assert det(menor) != 0, f"submatriz {linhas}x{colunas} singular: nao e MDS"
+
+
+def test_permutacao_espalha_entre_colunas():
+    """Cada coluna de saida precisa puxar um byte de cada coluna de entrada."""
+    for coluna in range(4):
+        origens = {cipher.SHIFT_ROWS[linha + 4 * coluna] // 4 for linha in range(4)}
+        assert origens == {0, 1, 2, 3}
 
 
 def test_permutacao_e_bijetiva():
@@ -196,8 +244,18 @@ def test_frequencia_quebra_sem_difusao_e_falha_com():
 
 
 def test_saida_passa_nos_testes_estatisticos():
+    """Amostra fixa de proposito.
+
+    Monobit e corridas sao testes de hipotese com p < 0,01: sobre uma amostra
+    nova a cada execucao, eles reprovariam ~1% das vezes sem que nada estivesse
+    errado. Com chave e nonce fixos o resultado e reproduzivel, que e o que um
+    teste de regressao precisa ser.
+    """
     claro = statistical.sample_ledger(600)
-    corpo = cipher.encrypt(claro, "senha")[cipher.HEADER.size : -cipher.TAG_LEN]
+    cp = cipher.FinalPayCipher(bytes(range(32)))
+    n_blocos = (len(claro) + cipher.BLOCK - 1) // cipher.BLOCK
+    fluxo = cp.keystream(b"nonce-fixo01", n_blocos).reshape(-1)[: len(claro)]
+    corpo = (np.frombuffer(claro, dtype=np.uint8) ^ fluxo).tobytes()
     p = metrics.full_profile(corpo)
     assert p["entropia_bits_por_byte"] > 7.99
     assert p["distribuicao_uniforme"] and p["monobit"]["passou"] and p["corridas"]["passou"]

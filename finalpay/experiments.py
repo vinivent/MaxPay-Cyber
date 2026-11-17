@@ -24,7 +24,8 @@ from PIL import Image
 
 from finalpay import baseline, detect, events, lake, metrics, stego
 from finalpay.attacks import brute_force, differential, statistical
-from finalpay.cipher import BLOCK, DEFAULT_ROUNDS, KDF_ITERATIONS, MODE_CTR, SBOX, decrypt, encrypt
+from finalpay.cipher import (BLOCK, DEFAULT_ROUNDS, DESLOCAMENTOS, INV_MDS, KDF_ITERATIONS,
+                             MDS, MODE_CTR, SBOX, SBOX_CONSTANTE, SBOX_ROTACOES, decrypt, encrypt)
 
 RESULTS = Path(__file__).resolve().parent.parent / "results"
 ARQUIVO = RESULTS / "experimentos.json"
@@ -93,6 +94,20 @@ def propriedades_da_cifra() -> dict:
         "integridade_detecta_adulteracao": integridade,
         "ciframentos_distintos_mesma_entrada": bool(encrypt(amostra, senha) != encrypt(amostra, senha)),
         "ddt": ddt,
+        "projeto": {
+            "familia": "rede SPN com S-box baseada em inverso multiplicativo, "
+                       "a mesma familia do AES e do Rijndael",
+            "sbox_rotacoes": list(SBOX_ROTACOES),
+            "sbox_constante": f"0x{SBOX_CONSTANTE:02X}",
+            "sbox_rotacoes_aes": [0, 1, 2, 3, 4],
+            "sbox_constante_aes": "0x63",
+            "deslocamentos": list(DESLOCAMENTOS),
+            "deslocamentos_aes": [0, 1, 2, 3],
+            "matriz_difusao": list(MDS),
+            "matriz_difusao_aes": [2, 3, 1, 1],
+            "matriz_difusao_inversa": list(INV_MDS),
+            "escalonamento_de_chaves": "HKDF sobre HMAC-SHA256, no lugar da expansao do Rijndael",
+        },
     }
 
 
@@ -196,6 +211,7 @@ def big_data_e_ia(n_eventos: int, regenerar: bool = True) -> dict:
         "top_suspeitos": lake.top_suspeitos(con),
         "catalogo_anomalias": [{"chave": k, "descricao": v} for k, v in events.ANOMALIAS.items()],
         "nomes_exibicao": events.NOMES_EXIBICAO,
+        "nomes_curtos": events.NOMES_CURTOS,
         "ia": ia,
     }
 
@@ -265,7 +281,7 @@ def _veredito(res: dict) -> dict:
             "margem_de_seguranca": round(DEFAULT_ROUNDS / max(rodada_dif, 1), 1),
             "justificativa": f"Inverter 1 bit da entrada altera {_n(av['media_pct'])}% dos bits de saída "
                              f"(o ideal é 50%), com desvio padrão {_n(av['desvio_padrao'], 3)} contra "
-                             f"{_n(float(np.sqrt(32)), 3)} esperado de uma binomial(128; 0,5) — ou seja, a "
+                             f"{_n(float(np.sqrt(32)), 3)} esperado de uma binomial(128; 0,5). Ou seja, a "
                              f"saída se comporta como se cada bit fosse sorteado por moeda honesta. A difusão "
                              f"se completa na rodada {rodada_dif} e a cifra usa {DEFAULT_ROUNDS}. "
                              f"A variante sem difusão fica em {_n(fraco['media_pct'])}%.",
@@ -280,7 +296,7 @@ def _veredito(res: dict) -> dict:
             "justificativa": f"No modo CTR a saída tem entropia {_n(ctr['entropia_bits_por_byte'], 4)} bits por "
                              f"byte (o máximo é 8), qui-quadrado com p = {_n(ctr['chi2_p_valor'], 4)}, o que não "
                              f"rejeita a uniformidade, índice de coincidência {_n(ctr['indice_coincidencia'], 6)} "
-                             f"(uma fonte uniforme dá 0,003906) e zero blocos repetidos — estatisticamente "
+                             f"(uma fonte uniforme dá 0,003906) e zero blocos repetidos: a saída é estatisticamente "
                              f"indistinguível de ruído aleatório. No modo ECB, porém, blocos claros iguais "
                              f"continuam gerando blocos cifrados iguais: {_n(ecb['repeticao_blocos']['pct_repetidos'])}% "
                              f"dos blocos se repetem mesmo com {DEFAULT_ROUNDS} rodadas. O modo de operação pesa "
@@ -308,12 +324,12 @@ def _veredito(res: dict) -> dict:
                 f"PBKDF2 com {_i(KDF_ITERATIONS)} iterações encarece o ataque de dicionário em cinco ordens de grandeza.",
             ],
             "ressalvas": [
-                "Cifra autoral sem análise pública: nenhuma cifra deve ir a produção sem anos de criptanálise independente. Em produção, use AES-256.",
+                "Cifra própria sem análise pública: a estrutura vem da mesma família do AES, mas S-box, matriz de difusão e permutação são escolhas nossas e nunca passaram por criptanálise independente. Em produção, use AES-256.",
                 f"O modo ECB continua vazando estrutura mesmo com {DEFAULT_ROUNDS} rodadas: apenas o modo CTR autenticado deve ser usado.",
                 "A implementação não é de tempo constante, o que abre risco de ataque por canal lateral de temporização.",
                 "A análise aqui é empírica: não foi feita criptanálise linear nem prova formal de resistência.",
             ],
-            "justificativa": "Dentro do escopo testado — força bruta, diferencial e estatístico — o FPC-128 em "
+            "justificativa": "Dentro do escopo testado, com força bruta, ataque diferencial e análise estatística, o FPC-128 em "
                              "modo CTR se comporta como uma cifra moderna e não cedeu a nenhum dos ataques. Isso "
                              "demonstra solidez de projeto, não maturidade criptográfica: a camada AES-256 existe "
                              "justamente para o uso real.",

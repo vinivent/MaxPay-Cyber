@@ -1,4 +1,4 @@
-/* FinalPay — dashboard.
+/* FinalPay, dashboard.
    Busca os resultados medidos pela bateria e os desenha. Nenhum numero e
    escrito aqui: tudo vem de results/experimentos.json via API. */
 
@@ -9,15 +9,16 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 const nf = (v, c = 2) =>
   v === null || v === undefined || Number.isNaN(v)
-    ? '—'
+    ? 'n/d'
     : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: c, maximumFractionDigits: c });
-const ni = (v) => (v === null || v === undefined ? '—' : Math.round(v).toLocaleString('pt-BR'));
+const ni = (v) => (v === null || v === undefined ? 'n/d' : Math.round(v).toLocaleString('pt-BR'));
 const pct = (v, c = 2) => `${nf(v, c)}%`;
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 const rotulo = (s) => estado.nomes?.[s] ?? String(s ?? '').replace(/_/g, ' ');
+const rotuloCurto = (s) => estado.nomesCurtos?.[s] ?? rotulo(s);
 const sup = (n) => String(n).replace(/-/g, '⁻').replace(/[0-9]/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+d]);
 
-const estado = { resultados: null, carregado: new Set(), nomes: null };
+const estado = { resultados: null, carregado: new Set(), nomes: null, nomesCurtos: null };
 
 async function api(rota, opcoes) {
   const r = await fetch(rota, opcoes);
@@ -64,7 +65,7 @@ const PAGINAS = new Set($$('.page').map((p) => p.id.replace('page-', '')));
 function irPara(pagina) {
   // Sem esta guarda, um hash que nao seja de pagina (o link de pular para o
   // conteudo, por exemplo) esconderia todas as secoes de uma vez.
-  if (!PAGINAS.has(pagina)) pagina = 'panorama';
+  if (!PAGINAS.has(pagina)) pagina = 'cofre';
   $$('.page').forEach((p) => (p.hidden = p.id !== `page-${pagina}`));
   $$('.nav-item').forEach((b) =>
     b.dataset.page === pagina ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
@@ -76,25 +77,13 @@ function irPara(pagina) {
 $$('.nav-item').forEach((b) => b.addEventListener('click', () => irPara(b.dataset.page)));
 
 /* --------------------------------------------------------------- paginas */
-const paginas = {
-  panorama: desenharPanorama,
-  cifra: desenharCifra,
-  estego: desenharEstego,
-  bigdata: desenharBigData,
-  ia: desenharIA,
-  veredito: desenharVeredito,
-  ataques: desenharAtaques,
-};
-
-const PRIMEIRO_SLOT = {
-  panorama: '#panorama-verdito', cifra: '#cifra-spec', estego: '#estego-spec',
-  bigdata: '#bd-spec', ia: '#ia-medidas', veredito: '#veredito-conteudo', ataques: '#ecb-imagens',
-};
+const paginas = { antifraude: desenharAntifraude, resistencia: desenharResistencia };
+const PRIMEIRO_SLOT = { antifraude: '#mon-medidas', resistencia: '#ecb-imagens' };
 
 function desenhar(pagina) {
   if (!paginas[pagina] || estado.carregado.has(pagina)) return;
   const slot = $(PRIMEIRO_SLOT[pagina]);
-  if (!estado.resultados && pagina !== 'ataques') {
+  if (!estado.resultados && pagina !== 'resistencia') {
     // A interface precisa dizer que a bateria nao rodou, nao ficar em branco.
     if (slot) falha(slot, new Error('a bateria de experimentos ainda não foi executada'));
     return;
@@ -107,188 +96,20 @@ function desenhar(pagina) {
   });
 }
 
-/* -------------------------------------------------------------- panorama */
-async function desenharPanorama() {
-  const r = estado.resultados;
-  const v = r.veredito;
-  const av = r.diferencial.fpc_integro;
-  const ctr = r.estatistico.perfis.find((p) => p.rotulo === 'fpc_ctr_14_rodadas');
-  const ia = r.bigdata.ia.metricas;
-  const seguro = v.e_seguro;
+/* ----------------------------------------------------------- antifraude */
+async function desenharAntifraude() {
+  const bd = estado.resultados.bigdata;
+  const res = bd.resumo;
+  const ia = bd.ia.metricas;
 
-  // O titulo e a moldura ja vivem no HTML: se a bateria nao rodou, a primeira
-  // tela continua com cabecalho e com um recado, em vez de ficar em branco.
-  $('#verdito-resposta').textContent = seguro.resposta;
-  $('#verdito-ressalvas').innerHTML = tag(`${seguro.ressalvas.length} ressalvas`, 'tag-warn');
-  $('#verdito-justificativa').textContent = seguro.justificativa;
-  $('#verdito-ressalva').innerHTML = `<b>Principal ressalva:</b> ${esc(seguro.ressalvas[0])}`;
-
-  medidas($('#panorama-medidas'), [
-    { label: 'Efeito avalanche', valor: pct(av.media_pct), nota: `ideal 50,00% · σ ${nf(av.desvio_padrao, 3)}` },
-    { label: 'Entropia da saída', valor: nf(ctr.entropia_bits_por_byte, 4), nota: 'bits por byte, máximo 8' },
-    { label: 'Detecção de anomalias', valor: nf(ia.roc_auc, 4), nota: `ROC AUC sobre ${ni(ia.janelas)} janelas` },
-    { label: 'Eventos processados', valor: ni(r.bigdata.resumo.eventos), nota: `${r.bigdata.resumo.dias} dias em Parquet` },
-  ]);
-
-  const perguntas = [
-    { q: 'Apresenta efeito avalanche?', d: v.efeito_avalanche, extra: `variante sem difusão: ${pct(r.diferencial.fpc_fraco.media_pct)}` },
-    { q: 'Existem padrões na saída?', d: v.padroes_na_saida, extra: `índice de coincidência ${nf(v.padroes_na_saida.indice_coincidencia, 6)} (uniforme = 0,003906)` },
-    { q: 'Qual ataque foi mais eficaz?', d: v.ataque_mais_eficaz, extra: v.ataque_mais_eficaz.ranking[0].contra_fraco },
-    { q: 'O sistema é seguro?', d: v.e_seguro, extra: `força bruta inviável por ${r.forca_bruta.projecao.find((p) => p.bits === 256 && p.cenario.includes('GPU'))?.anos_fmt ?? '—'}` },
-  ];
-  $('#panorama-perguntas').innerHTML = perguntas
-    .map(({ q, d, extra }) => `<div class="panel"><div class="panel-body">
-        <h3 class="h3" style="margin-bottom:12px">${esc(q)}</h3>
-        <p class="answer" style="margin-bottom:10px">${esc(d.resposta)}</p>
-        <p class="body">${esc(extra)}</p></div></div>`)
-    .join('');
-
-  const camadas = [
-    ['1', 'Entrada de dados', 'Texto, arquivos e imagens', 'cofre'],
-    ['2', 'Criptografia', `FPC-128 de ${r.cifra.rodadas} rodadas e AES-256`, 'cifra'],
-    // Sem numero aqui: a secao de esteganografia nao vem no payload leve, e um
-    // zero silencioso seria um numero inventado na tela.
-    ['3', 'Esteganografia', 'Ocultação do envelope em imagens', 'estego'],
-    ['4', 'Big Data', `${ni(r.bigdata.resumo.eventos)} eventos`, 'bigdata'],
-    ['5', 'Inteligência Artificial', `AUC ${nf(ia.roc_auc, 4)}`, 'ia'],
-    ['6', 'Dashboard', 'Alertas, gráficos e veredito', 'veredito'],
-  ];
-  $('#panorama-camadas').innerHTML = camadas
-    .map(([n, t, s, pg]) => `<a class="panel" href="#${pg}">
-        <div class="panel-body"><div class="row" style="gap:9px;margin-bottom:8px">
-          <span class="nav-num">${n}</span><span class="h3">${esc(t)}</span></div>
-          <p class="meta">${esc(s)}</p></div></a>`)
-    .join('');
-}
-
-/* ----------------------------------------------------------------- cifra */
-async function desenharCifra() {
-  const r = estado.resultados;
-  const c = r.cifra;
-  const av = r.diferencial.fpc_integro;
-  const fr = r.diferencial.fpc_fraco;
-
-  $('#cifra-spec').innerHTML = [
-    ['Bloco', `${c.bloco_bits} bits`], ['Chave', `${c.chave_bits} bits`],
-    ['Rodadas', c.rodadas], ['Estrutura', 'SPN'],
-    ['S-box bijetiva', c.sbox_bijetiva ? 'sim' : 'não'],
-    ['Pontos fixos da S-box', c.sbox_pontos_fixos],
-    ['Uniformidade diferencial', `${c.ddt_maximo} → 2${sup(nf(c.log2_prob_diferencial, 0))}`],
-    ['Integridade', c.integridade_detecta_adulteracao ? 'HMAC-SHA256' : 'ausente'],
-    ['Chave por mensagem', c.ciframentos_distintos_mesma_entrada ? 'sim (salt + nonce)' : 'não'],
-  ].map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('');
-
-  const semDif = r.diferencial.fpc_sem_difusao_14_rodadas;
-  line($('#chart-avalanche'), {
-    height: 250, draw: true, yDomain: [0, 60], refLine: 50, refLabel: 'ideal 50%', xInteiro: true,
-    xLabel: 'rodada', yLabel: '% de bits alterados',
-    yFormat: (v) => `${nf(v, 0)}%`, tipFormat: (v) => `${nf(v)}%`,
-    series: [
-      { name: `FPC-128 íntegro (${c.rodadas} rodadas, com difusão)`, color: SERIES[0], points: av.por_rodada.map((p) => [p.rodada, p.pct]) },
-      { name: `${c.rodadas} rodadas, sem difusão`, color: SERIES[1], points: semDif.por_rodada.map((p) => [p.rodada, p.pct]) },
-    ],
-  });
-  const completa = av.por_rodada.find((p) => p.pct > 49);
-  $('#cifra-avalanche-nota').textContent =
-    `A difusão se completa na rodada ${completa?.rodada ?? '—'}; a cifra usa ${c.rodadas}, ` +
-    `uma margem de ${nf(c.rodadas / (completa?.rodada || 1), 1)}×. O que sustenta a avalanche é a difusão, ` +
-    `não a quantidade de rodadas: com o MixColumns desligado, ${c.rodadas} rodadas entregam ` +
-    `${pct(semDif.media_pct)} — praticamente o mesmo que uma única rodada (${pct(fr.media_pct)}).`;
-
-  const hist = av.histograma.map((v, i) => ({ label: String(i), value: v }));
-  bars($('#chart-aval-hist'), {
-    data: hist, dense: true, height: 210, color: SERIES[0], refLine: undefined,
-    xLabel: 'bits alterados (de 128)', yLabel: 'ocorrências',
-    tipFormat: (v) => ni(v), xTickEvery: 16,
-  });
-
-  bars($('#chart-vazao'), {
-    height: 210, yLabel: 'MB/s', tipFormat: (v) => `${nf(v)} MB/s`,
-    data: [
-      { label: 'FPC-128', value: r.desempenho.fpc128_mb_por_s, color: SERIES[0], nota: 'Python + numpy' },
-      { label: 'AES-256', value: r.desempenho.aes256_mb_por_s, color: SERIES[2], nota: 'biblioteca com AES-NI' },
-    ],
-  });
-
-  for (const [secao, alvoGrafico, alvoResumo] of [
-    ['sac', '#chart-sac', '#sac-resumo'], ['sac_fraco', '#chart-sac-fraco', '#sac-fraco-resumo'],
-  ]) {
-    carregando($(alvoResumo), 'Carregando matriz');
-    try {
-      const s = await api(`/api/resultados/${secao}`);
-      heatmap($(alvoGrafico), {
-        matrix: s.matriz, mid: 0.5, span: 0.5, height: 250,
-        xLabel: 'bit de saída', yLabel: 'bit de entrada', rotulo: 'P(inversão)',
-      });
-      $(alvoResumo).innerHTML = `<dl class="spec">
-        <dt>Média</dt><dd>${nf(s.media, 5)}</dd>
-        <dt>Desvio máximo</dt><dd>${nf(s.desvio_maximo, 5)}</dd>
-        <dt>Limite (Bonferroni 5%)</dt><dd>${nf(s.limite_bonferroni, 5)}</dd>
-        <dt>Células fora do limite</dt><dd>${ni(s.celulas_fora_do_limite)} de ${ni(s.celulas)}</dd>
-        </dl><div style="margin-top:12px">${s.satisfaz_sac ? tag('Satisfaz o SAC', 'tag-ok') : tag('Não satisfaz o SAC', 'tag-crit')}</div>`;
-    } catch (e) { falha($(alvoResumo), e); }
-  }
-}
-
-/* ------------------------------------------------------------ esteganografia */
-async function desenharEstego() {
-  const alvo = $('#estego-spec');
-  carregando(alvo);
-  try {
-    const s = await api('/api/resultados/estego');
-    medidas($('#estego-medidas'), [
-      { label: 'PSNR', valor: `${nf(s.qualidade.psnr_db)} dB`, nota: 'acima de 40 dB é imperceptível' },
-      { label: 'Capacidade', valor: ni(s.capacidade_bytes), nota: `bytes · ocupação de ${pct(s.ocupacao_pct)}` },
-      { label: 'Subpixels alterados', valor: pct(s.qualidade.pct_alterado, 3), nota: `desvio máximo de ${s.qualidade.desvio_maximo} por canal` },
-      { label: 'Segmentos suspeitos', valor: `${s.esteganalise.segmentos_suspeitos.lsb_chaveado_finalpay}`, nota: `contra ${s.esteganalise.segmentos_suspeitos.lsb_sequencial_sem_chave} do LSB sequencial` },
-    ]);
-
-    $('#estego-imagens').innerHTML = `
-      <figure><img alt="Imagem portadora original" src="data:image/png;base64,${s.imagens_base64.original}">
-        <figcaption class="meta">Portadora original</figcaption></figure>
-      <figure><img alt="Imagem com o envelope cifrado oculto" src="data:image/png;base64,${s.imagens_base64.com_payload}">
-        <figcaption class="meta">Com ${ni(s.payload_bytes)} bytes ocultos</figcaption></figure>`;
-
-    alvo.innerHTML = [
-      ['Erro quadrático médio', nf(s.qualidade.mse, 6)],
-      ['Subpixels alterados', `${ni(s.qualidade.subpixels_alterados)} de ${ni(s.qualidade.subpixels_totais)}`],
-      ['Desvio máximo por canal', s.qualidade.desvio_maximo],
-      ['Round-trip', s.round_trip_ok ? 'íntegro' : 'falhou'],
-      ['Chave errada', s.resiste_chave_errada ? 'rejeitada' : 'aceita'],
-    ].map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('');
-
-    const varre = s.esteganalise.varredura;
-    line($('#chart-estegoanalise'), {
-      height: 230, yDomain: [0, 1], refLine: 0.5, refLabel: 'limiar de suspeita',
-      xLabel: '% da imagem', yLabel: 'probabilidade de ocultação',
-      yFormat: (v) => nf(v, 1), tipFormat: (v) => nf(v, 4),
-      series: [
-        { name: 'LSB sequencial sem chave', color: SERIES[1], points: varre.lsb_sequencial_sem_chave.map((p) => [p.inicio_pct, p.p_estego]) },
-        { name: 'LSB chaveado do FinalPay', color: SERIES[0], points: varre.lsb_chaveado_finalpay.map((p) => [p.inicio_pct, p.p_estego]) },
-        { name: 'Imagem limpa (controle)', color: SERIES[2], points: varre.imagem_limpa.map((p) => [p.inicio_pct, p.p_estego]) },
-      ],
-    });
-    $('#estego-nota').textContent =
-      `Com a mesma carga de ${ni(s.esteganalise.payload_da_comparacao_bytes)} bytes ` +
-      `(${pct(s.esteganalise.ocupacao_da_comparacao_pct, 1)} da capacidade), o LSB sequencial acende ` +
-      `${s.esteganalise.segmentos_suspeitos.lsb_sequencial_sem_chave} dos 20 segmentos porque concentra os bits no ` +
-      `início do arquivo. Espalhando as posições por uma permutação derivada da chave, acendem ` +
-      `${s.esteganalise.segmentos_suspeitos.lsb_chaveado_finalpay} — o mesmo que a imagem limpa.`;
-  } catch (e) { falha(alvo, e); }
-}
-
-/* --------------------------------------------------------------- big data */
-async function desenharBigData() {
-  const r = estado.resultados.bigdata;
-  const res = r.resumo;
-  medidas($('#bd-medidas'), [
-    { label: 'Eventos', valor: ni(res.eventos), nota: `${res.dias} dias · ${ni(res.usuarios)} usuários` },
-    { label: 'Em disco', valor: `${nf(r.ingestao.bytes_em_disco / 1e6, 1)} MB`, nota: `${nf(r.ingestao.bytes_por_evento)} B por evento` },
-    { label: 'Taxa de falha', valor: pct(res.taxa_falha_pct, 3), nota: `${ni(res.falhas)} falhas` },
+  medidas($('#mon-medidas'), [
+    { label: 'Eventos monitorados', valor: ni(res.eventos), nota: `${res.dias} dias, ${ni(res.usuarios)} contas` },
+    { label: 'Alertas abertos', valor: ni(ia.alertas), nota: `de ${ni(ia.janelas)} janelas de comportamento` },
+    { label: 'Taxa de falha', valor: pct(res.taxa_falha_pct, 3), nota: `${ni(res.falhas)} operações falharam` },
     { label: 'Latência p99', valor: `${nf(res.latencia_p99)} ms`, nota: `mediana de ${nf(res.latencia_mediana)} ms` },
   ]);
 
-  const serie = r.serie_temporal;
+  const serie = bd.serie_temporal;
   line($('#chart-serie'), {
     height: 240, xLabel: 'dia', yLabel: 'eventos por hora',
     xFormat: (v) => new Date(v).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
@@ -299,113 +120,61 @@ async function desenharBigData() {
     ],
   });
 
+  tabela($('#tab-alertas'), [
+    { titulo: 'Conta', celula: (l) => `<span class="num">${esc(l.usuario)}</span>` },
+    { titulo: 'Quando', celula: (l) => `<span class="num">${esc(l.janela.slice(5, 16))}</span>` },
+    { titulo: 'Risco', n: true, celula: (l) => nf(l.score, 3) },
+    { titulo: 'Suspeita', celula: (l) => esc(rotulo(l.tipo_previsto)) },
+    { titulo: 'Por quê', celula: (l) => `<span class="meta">${esc(l.explicacao)}</span>` },
+    { titulo: 'Confere', celula: (l) => (l.tipo_previsto === l.rotulo_real ? tag('correto', 'tag-ok') : tag(rotulo(l.rotulo_real), 'tag-warn')) },
+  ], bd.ia.alertas);
+
+  tabela($('#tab-suspeitos'), [
+    { titulo: 'Conta', celula: (l) => `<span class="num">${esc(l.usuario)}</span>` },
+    { titulo: 'Eventos', n: true, celula: (l) => ni(l.eventos) },
+    { titulo: 'Falhas', n: true, celula: (l) => ni(l.falhas) },
+    { titulo: 'IPs', n: true, celula: (l) => ni(l.ips) },
+    { titulo: 'Taxa', n: true, celula: (l) => pct(l.taxa_falha_pct, 1) },
+  ], bd.top_suspeitos);
+
   tabela($('#tab-tipo'), [
     { titulo: 'Tipo', celula: (l) => esc(rotulo(l.chave)) },
     { titulo: 'Eventos', n: true, celula: (l) => ni(l.eventos) },
     { titulo: 'Falhas', n: true, celula: (l) => ni(l.falhas) },
     { titulo: 'Taxa', n: true, celula: (l) => pct(l.taxa_falha_pct) },
-  ], r.por_tipo);
-
-  tabela($('#tab-suspeitos'), [
-    { titulo: 'Usuário', celula: (l) => `<span class="num">${esc(l.usuario)}</span>` },
-    { titulo: 'Eventos', n: true, celula: (l) => ni(l.eventos) },
-    { titulo: 'Falhas', n: true, celula: (l) => ni(l.falhas) },
-    { titulo: 'IPs', n: true, celula: (l) => ni(l.ips) },
-    { titulo: 'Taxa', n: true, celula: (l) => pct(l.taxa_falha_pct, 1) },
-  ], r.top_suspeitos);
-
-  const d = r.desempenho_consultas;
-  $('#bd-spec').innerHTML = [
-    ['Ingestão', `${nf(r.ingestao.segundos)} s`],
-    ['Partições', `${r.ingestao.particoes} dias`],
-    ['Consulta de resumo', `${nf(d.resumo_segundos, 3)} s`],
-    ['Agregação em janelas', `${nf(d.janelas_segundos, 3)} s`],
-    ['Treino e pontuação da IA', `${nf(d.ia_segundos, 3)} s`],
-    ['Redução', d.reducao_dimensional],
-  ].map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('');
-}
-
-/* --------------------------------------------------------------------- IA */
-async function desenharIA() {
-  const r = estado.resultados.bigdata.ia;
-  const m = r.metricas;
-  medidas($('#ia-medidas'), [
-    { label: 'ROC AUC', valor: nf(m.roc_auc, 4), nota: `sobre ${ni(m.janelas)} janelas` },
-    { label: 'Precisão média', valor: nf(m.average_precision, 4), nota: `${nf(m.ganho_sobre_acaso, 1)}× acima do acaso` },
-    { label: 'Revocação', valor: pct(m.revocacao * 100, 1), nota: `${ni(m.alertas)} alertas emitidos` },
-    { label: 'Prevalência real', valor: pct(m.prevalencia_pct, 3), nota: `${ni(m.janelas_anomalas)} janelas anômalas` },
-  ]);
+  ], bd.por_tipo);
 
   bars($('#chart-ia-tipos'), {
-    height: 240, yDomain: [0, 100], yLabel: '% detectado', yFormat: (v) => `${nf(v, 0)}%`,
+    height: 220, yDomain: [0, 100], yLabel: '% detectado', yFormat: (v) => `${nf(v, 0)}%`,
     tipFormat: (v) => pct(v, 1),
-    data: m.por_tipo.map((t) => ({
-      label: rotulo(t.tipo), value: t.revocacao_pct, color: SERIES[0],
-      nota: `${t.detectadas} de ${t.janelas} janelas · tipo correto em ${nf(t.acerto_tipo_pct, 1)}%`,
+    data: ia.por_tipo.map((t) => ({
+      label: rotuloCurto(t.tipo), value: t.revocacao_pct, color: SERIES[0],
+      nota: `${t.detectadas} de ${t.janelas} janelas, tipo correto em ${nf(t.acerto_tipo_pct, 1)}%`,
     })),
   });
 
-  const dist = r.distribuicao_score;
-  bars($('#chart-ia-score'), {
-    height: 240, dense: true, color: SERIES[0], yLabel: 'janelas', xLabel: 'score de risco',
-    tipFormat: (v) => ni(v), xTickEvery: 8,
-    data: dist.contagem.map((v, idx) => ({ label: nf(dist.bordas[idx], 2), value: v })),
-  });
-
-  tabela($('#tab-operacao'), [
-    { titulo: 'Orçamento de alertas', n: true, celula: (l) => ni(l.orcamento_alertas) },
-    { titulo: '% das janelas', n: true, celula: (l) => pct(l.orcamento_pct, 2) },
-    { titulo: 'Precisão', n: true, celula: (l) => nf(l.precisao, 3) },
-    { titulo: 'Revocação', n: true, celula: (l) => nf(l.revocacao, 3) },
-  ], m.pontos_de_operacao);
-
-  tabela($('#tab-alertas'), [
-    { titulo: 'Usuário', celula: (l) => `<span class="num">${esc(l.usuario)}</span>` },
-    { titulo: 'Janela', celula: (l) => `<span class="num">${esc(l.janela.slice(5, 16))}</span>` },
-    { titulo: 'Score', n: true, celula: (l) => nf(l.score, 3) },
-    { titulo: 'Tipo previsto', celula: (l) => esc(rotulo(l.tipo_previsto)) },
-    { titulo: 'Confere', celula: (l) => (l.tipo_previsto === l.rotulo_real ? tag('correto', 'tag-ok') : tag(rotulo(l.rotulo_real), 'tag-warn')) },
-    { titulo: 'Por quê', celula: (l) => `<span class="meta">${esc(l.explicacao)}</span>` },
-  ], r.alertas);
+  const d = bd.desempenho_consultas;
+  $('#ia-spec').innerHTML = [
+    ['Modelo', 'Isolation Forest'],
+    ['Treinado com rótulos', 'não'],
+    ['ROC AUC', nf(ia.roc_auc, 4)],
+    ['Precisão média', nf(ia.average_precision, 4)],
+    ['Ganho sobre o acaso', `${nf(ia.ganho_sobre_acaso, 1)}×`],
+    ['Revocação', pct(ia.revocacao * 100, 1)],
+    ['Eventos resumidos em janelas', d.reducao_dimensional],
+    ['Tempo de treino e pontuação', `${nf(d.ia_segundos, 3)} s`],
+  ].map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('');
 }
 
-/* --------------------------------------------------------------- veredito */
-async function desenharVeredito() {
-  const v = estado.resultados.veredito;
-  const bloco = (titulo, d, corpo) => `
-    <div class="panel"><div class="panel-body" style="padding:24px 28px">
-      <h2 class="h2" style="margin-bottom:14px">${esc(titulo)}</h2>
-      <p class="answer" style="margin-bottom:14px">${esc(d.resposta)}</p>
-      <p class="body measure">${esc(d.justificativa)}</p>${corpo || ''}</div></div>`;
-
-  const ranking = `<div class="table-wrap auto" style="margin-top:20px"><table>
-    <thead><tr><th>Ataque</th><th>O que o atacante obtém</th><th>Contra a cifra íntegra</th><th>Contra a variante enfraquecida</th></tr></thead>
-    <tbody>${v.ataque_mais_eficaz.ranking.map((x) => `<tr>
-      <td><b>${esc(x.ataque)}</b></td><td>${esc(x.ganho)}</td>
-      <td class="meta">${esc(x.contra_integro)}</td><td class="meta">${esc(x.contra_fraco)}</td></tr>`).join('')}</tbody></table></div>`;
-
-  const listas = `<div class="grid grid-2" style="margin-top:22px">
-    <div><p class="label" style="margin-bottom:10px">A favor</p>
-      <ul class="small" style="margin:0;padding-left:18px;line-height:1.7">${v.e_seguro.a_favor.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>
-    <div><p class="label" style="margin-bottom:10px">Ressalvas</p>
-      <ul class="small" style="margin:0;padding-left:18px;line-height:1.7">${v.e_seguro.ressalvas.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
-
-  $('#veredito-conteudo').innerHTML =
-    bloco('O sistema apresenta efeito avalanche?', v.efeito_avalanche) +
-    bloco('Existem padrões na saída?', v.padroes_na_saida) +
-    bloco('Qual ataque foi mais eficaz?', v.ataque_mais_eficaz, ranking) +
-    bloco('O sistema é seguro?', v.e_seguro, listas);
-}
-
-/* ---------------------------------------------------------------- ataques */
-async function desenharAtaques() {
+/* ---------------------------------------------------------- resistencia */
+async function desenharResistencia() {
   const alvo = $('#ecb-imagens');
   carregando(alvo, 'Carregando imagens');
   try {
     const e = await api('/api/resultados/ecb');
     const nomeEcb = {
-      original: 'Imagem original', ecb_1_rodada_sem_difusao: 'ECB · 1 rodada, sem difusão',
-      ecb_14_rodadas: 'ECB · 14 rodadas', ctr_14_rodadas: 'CTR · 14 rodadas',
+      original: 'Imagem original', ecb_1_rodada_sem_difusao: 'ECB, 1 rodada, sem difusão',
+      ecb_14_rodadas: 'ECB, 14 rodadas', ctr_14_rodadas: 'CTR, 14 rodadas',
     };
     alvo.innerHTML = e.variantes.map((x) => `<figure style="margin:0">
         <img alt="${esc(nomeEcb[x.nome] ?? rotulo(x.nome))}" src="data:image/png;base64,${x.png_base64}"
@@ -415,7 +184,7 @@ async function desenharAtaques() {
     const ecb14 = e.variantes.find((x) => x.nome === 'ecb_14_rodadas');
     $('#ecb-nota').textContent =
       `Mesmo com 14 rodadas e difusão completa, o modo ECB preserva ${nf(ecb14.repeticao_blocos.pct_repetidos)}% ` +
-      `dos blocos repetidos e o contorno da imagem sobrevive à cifragem: blocos claros iguais produzem blocos ` +
+      `dos blocos repetidos, e o contorno da imagem sobrevive à cifragem: blocos claros iguais produzem blocos ` +
       `cifrados iguais. No modo CTR, zero repetições. O modo de operação pesa mais que o número de rodadas.`;
   } catch (err) { falha(alvo, err); }
 }
@@ -431,7 +200,6 @@ function ligaSlider(id, saida, sufixo = '') {
 ligaSlider('#bf-bits', '#bf-bits-v');
 ligaSlider('#df-rodadas', '#df-rodadas-v');
 ligaSlider('#fq-rodadas', '#fq-rodadas-v');
-ligaSlider('#cofre-rodadas', '#cofre-rodadas-v');
 
 async function executar(botao, alvo, rota, render) {
   const el = $(alvo);
@@ -499,7 +267,6 @@ $$('#cofre-tipo button').forEach((b) => b.addEventListener('click', () => {
   $('#campo-texto').hidden = b.dataset.tipo !== 'texto';
   $('#campo-arquivo').hidden = b.dataset.tipo !== 'arquivo';
 }));
-$('#cofre-ocultar').addEventListener('change', (e) => ($('#campo-portadora').hidden = !e.target.checked));
 
 const lerB64 = (input) => new Promise((ok, erro) => {
   const f = input.files?.[0];
@@ -519,22 +286,14 @@ $('#btn-cifrar').addEventListener('click', async (ev) => {
     const texto = $$('#cofre-tipo button').find((b) => b.getAttribute('aria-pressed') === 'true').dataset.tipo === 'texto';
     const arq = texto ? null : await lerB64($('#cofre-arquivo'));
     if (!texto && !arq) throw new Error('escolha um arquivo');
-    const corpo = {
-      senha: $('#cofre-senha').value,
-      algoritmo: $('#cofre-algo').value,
-      modo: $('#cofre-modo').value,
-      rodadas: +$('#cofre-rodadas').value,
-      difusao: $('#cofre-difusao').checked,
-      ocultar_em_imagem: $('#cofre-ocultar').checked,
-      ...(texto ? { texto: $('#cofre-texto').value } : { conteudo_b64: arq.b64, nome_arquivo: arq.nome }),
-    };
-    if (corpo.ocultar_em_imagem) {
-      const port = await lerB64($('#cofre-portadora'));
-      if (!port) throw new Error('escolha uma imagem portadora');
-      corpo.imagem_b64 = port.b64;
-    }
     const d = await api('/api/cofre/cifrar', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        senha: $('#cofre-senha').value,
+        algoritmo: $('#cofre-algo').value,
+        modo: $('#cofre-modo').value,
+        ...(texto ? { texto: $('#cofre-texto').value } : { conteudo_b64: arq.b64, nome_arquivo: arq.nome }),
+      }),
     });
     $('#dec-envelope').value = d.envelope_b64;
     mostrarCifragem(d);
@@ -545,82 +304,56 @@ $('#btn-cifrar').addEventListener('click', async (ev) => {
 
 function mostrarCifragem(d) {
   const m = d.metadados;
-  const confiavel = d.entropia_confiavel;
   $('#cofre-resultado').innerHTML = `
-    <div class="panel"><div class="panel-head"><h3 class="h3">Envelope gerado</h3>
-      ${tag(`${m.modo} · ${m.rodadas} rodadas`, 'tag-info')}
-      ${m.difusao ? tag('difusão ligada', 'tag-ok') : tag('difusão desligada', 'tag-crit')}</div>
+    <div class="panel"><div class="panel-head"><h2 class="h3">Envelope protegido</h2>
+      ${tag(`${m.modo}, ${m.rodadas} rodadas`, 'tag-info')}
+      ${tag('integridade por HMAC-SHA256', 'tag-ok')}</div>
       <div class="panel-body stack">
         <div class="measures">
-          <div><span class="label">Entropia do claro</span><span class="num-lg">${nf(d.entropia_clara, 3)}</span><div class="meta">bits por byte</div></div>
-          <div><span class="label">Entropia do cifrado</span><span class="num-lg">${nf(d.entropia_cifrada, 3)}</span>
-            <div class="meta">${confiavel ? 'máximo 8,000' : 'amostra curta demais para ser conclusiva'}</div></div>
+          <div><span class="label">Entropia na entrada</span><span class="num-lg">${nf(d.entropia_clara, 3)}</span><div class="meta">bits por byte</div></div>
+          <div><span class="label">Entropia na saída</span><span class="num-lg">${nf(d.entropia_cifrada, 3)}</span>
+            <div class="meta">${d.entropia_confiavel ? 'máximo 8,000' : 'amostra curta demais para ser conclusiva'}</div></div>
           <div><span class="label">Latência</span><span class="num-lg">${nf(d.latencia_ms)} ms</span><div class="meta">${nf(d.vazao_mb_s)} MB/s</div></div>
-          <div><span class="label">Tamanho</span><span class="num-lg">${ni(m.bytes_cifrados)}</span><div class="meta">de ${ni(m.bytes_claros)} bytes claros</div></div>
+          <div><span class="label">Tamanho</span><span class="num-lg">${ni(m.bytes_cifrados)}</span><div class="meta">de ${ni(m.bytes_claros)} bytes de entrada</div></div>
         </div>
         <div class="grid grid-2">
-          <div><p class="label" style="margin-bottom:10px">Distribuição de bytes — claro</p><div id="hist-claro"></div></div>
-          <div><p class="label" style="margin-bottom:10px">Distribuição de bytes — cifrado</p><div id="hist-cifrado"></div></div>
+          <div><p class="label" style="margin-bottom:10px">Distribuição de bytes na entrada</p><div id="hist-claro"></div></div>
+          <div><p class="label" style="margin-bottom:10px">Distribuição de bytes na saída</p><div id="hist-cifrado"></div></div>
         </div>
         <dl class="spec">
-          <dt>Salt</dt><dd>${esc(m.salt)}</dd>
-          <dt>Nonce</dt><dd>${esc(m.nonce)}</dd>
+          <dt>Salt (novo a cada operação)</dt><dd>${esc(m.salt)}</dd>
+          <dt>Nonce (novo a cada operação)</dt><dd>${esc(m.nonce)}</dd>
         </dl>
-        ${d.esteganografia ? `
-        <div class="divider"></div>
-        <p class="label">Oculto na imagem</p>
-        <div class="row">
-          ${tag(`PSNR ${nf(d.esteganografia.qualidade.psnr_db)} dB`, 'tag-ok')}
-          ${tag(`ocupa ${pct(d.esteganografia.ocupacao_pct)} da capacidade`)}
-          ${tag(`suspeita ${d.esteganografia.esteganalise.suspeita}`, d.esteganografia.esteganalise.suspeita === 'alta' ? 'tag-warn' : 'tag-ok')}
-        </div>
-        <img alt="Imagem com o envelope oculto" src="data:image/png;base64,${d.esteganografia.imagem_b64}"
-             style="max-width:320px;border:1px solid var(--line);border-radius:var(--r)">
-        <a class="btn btn-sm" download="finalpay-estego.png" href="data:image/png;base64,${d.esteganografia.imagem_b64}">
-          <svg><use href="#ic-download"/></svg>Baixar imagem</a>` : ''}
       </div></div>`;
-
   const hist = (sel, dados, cor) => bars($(sel), {
     data: dados.map((v, idx) => ({ label: String(idx), value: v })),
-    dense: true, height: 150, color: cor, xTickEvery: 64, tipFormat: (v) => ni(v),
-    yLabel: 'ocorrências',
+    dense: true, height: 150, color: cor, xTickEvery: 64, tipFormat: (v) => ni(v), yLabel: 'ocorrências',
   });
   hist('#hist-claro', d.histograma_claro, SERIES[1]);
   hist('#hist-cifrado', d.histograma_cifrado, SERIES[0]);
 }
 
-async function decifrar(usarImagem) {
+$('#btn-decifrar').addEventListener('click', async () => {
   const saida = $('#dec-saida');
-  carregando(saida, 'Decifrando');
+  const envelope = $('#dec-envelope').value.trim();
+  if (!envelope) { saida.innerHTML = `<div class="note"><svg><use href="#ic-info"/></svg>Cole um envelope ou proteja algo ao lado.</div>`; return; }
+  carregando(saida, 'Abrindo');
   try {
-    const corpo = { senha: $('#dec-senha').value };
-    if (usarImagem) {
-      const input = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/png' });
-      const arq = await new Promise((ok) => { input.onchange = () => ok(lerB64(input)); input.click(); });
-      const port = await arq;
-      if (!port) { saida.innerHTML = ''; return; }
-      corpo.imagem_b64 = port.b64;
-    } else {
-      corpo.envelope_b64 = $('#dec-envelope').value.trim();
-      if (!corpo.envelope_b64) throw new Error('cole um envelope base64');
-    }
     const d = await api('/api/cofre/decifrar', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo),
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ envelope_b64: envelope, senha: $('#dec-senha').value }),
     });
     saida.innerHTML = `<div class="note" style="background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)">
         <svg><use href="#ic-info"/></svg><div><b>Integridade verificada.</b>
-        ${ni(d.bytes)} bytes recuperados de ${esc(d.origem)} em ${nf(d.latencia_ms)} ms.</div></div>
-      ${d.texto !== null ? `<pre class="code" style="margin-top:12px">${esc(d.texto.slice(0, 1200))}</pre>`
-        : `<p class="small" style="margin-top:12px">Conteúdo binário — <a download="finalpay.bin" href="data:application/octet-stream;base64,${d.conteudo_b64}">baixar arquivo</a>.</p>`}`;
-    atualizarLog();
+        ${ni(d.bytes)} bytes recuperados em ${nf(d.latencia_ms)} ms.</div></div>
+      ${d.texto !== null ? `<pre class="code wrap" style="margin-top:12px">${esc(d.texto.slice(0, 1200))}</pre>`
+        : `<p class="small" style="margin-top:12px">Conteúdo binário. <a download="finalpay.bin" href="data:application/octet-stream;base64,${d.conteudo_b64}">Baixar arquivo</a>.</p>`}`;
   } catch (e) {
     saida.innerHTML = `<div class="note note-warn"><svg><use href="#ic-alert"/></svg>
-      <div><b>Falha ao decifrar.</b> ${esc(e.message)}</div></div>`;
-    atualizarLog();
+      <div><b>Recusado.</b> ${esc(e.message)}</div></div>`;
   }
-}
-$('#btn-decifrar').addEventListener('click', () => decifrar(false));
-$('#btn-decifrar-img').addEventListener('click', () => decifrar(true));
+  atualizarLog();
+});
 
 async function atualizarLog() {
   try {
@@ -635,13 +368,182 @@ async function atualizarLog() {
   } catch { /* o log e acessorio: uma falha aqui nao deve quebrar a pagina */ }
 }
 
+/* ------------------------------------------------- lupa: antes e depois */
+const lupa = { antes: null, depois: null, nota: '' };
+
+function abrirLupa(lado = 'antes') {
+  if (!lupa.antes || !lupa.depois) return;
+  $('#lupa-img').src = `data:image/png;base64,${lupa[lado]}`;
+  $('#lupa-img').alt = lado === 'antes' ? 'Imagem portadora original' : 'Imagem com o conteúdo oculto';
+  $('#lupa-nota').textContent = lupa.nota;
+  $$('#lupa-abas button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lado === lado)));
+  $('#lupa').setAttribute('open', '');
+  $('#lupa-fechar').focus();
+}
+const fecharLupa = () => $('#lupa').removeAttribute('open');
+
+$('#lupa-fechar').addEventListener('click', fecharLupa);
+$('#lupa').addEventListener('click', (e) => { if (e.target.id === 'lupa') fecharLupa(); });
+$$('#lupa-abas button').forEach((b) => b.addEventListener('click', () => abrirLupa(b.dataset.lado)));
+addEventListener('keydown', (e) => {
+  if (!$('#lupa').hasAttribute('open')) return;
+  if (e.key === 'Escape') fecharLupa();
+  // Alternar com as setas e o que prova o ponto: a diferenca nao aparece.
+  if (e.key === 'ArrowLeft') abrirLupa('antes');
+  if (e.key === 'ArrowRight') abrirLupa('depois');
+});
+
+/* ---------------------------------------------------------------- ocultar */
+let portadora = null;        // { b64, capacidade } escolhida para ocultar
+let exemploRevelar = null;   // imagem de exemplo ja com conteudo escondido
+
+function mostrarPortadora(nome) {
+  $('#oc-erro').textContent = '';
+  $('#oc-resultado').innerHTML = `<div class="panel"><div class="panel-body">
+    <div class="row" style="gap:14px">
+      <img alt="Imagem portadora escolhida" src="data:image/png;base64,${portadora.b64}"
+           style="width:120px;border:1px solid var(--line);border-radius:var(--r)">
+      <div><p class="h3">Portadora pronta</p>
+        <p class="small">${esc(nome)}${portadora.capacidade ? ` · cabem até ${ni(portadora.capacidade)} bytes` : ''}</p></div>
+    </div></div></div>`;
+}
+
+$('#btn-exemplo').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  btn.disabled = true;
+  try {
+    const d = await api('/api/estego/portadora');
+    portadora = { b64: d.imagem_b64, capacidade: d.capacidade_bytes };
+    mostrarPortadora(`imagem de exemplo, ${d.dimensoes[0]}×${d.dimensoes[1]} px`);
+  } catch (e) { $('#oc-erro').textContent = e.message; }
+  finally { btn.disabled = false; }
+});
+
+$('#oc-portadora').addEventListener('change', async () => {
+  const arq = await lerB64($('#oc-portadora'));
+  if (!arq) return;
+  portadora = { b64: arq.b64, capacidade: null };
+  mostrarPortadora(arq.nome);
+});
+
+$('#btn-ocultar').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const erro = $('#oc-erro');
+  erro.textContent = '';
+  if (!portadora) { erro.textContent = 'escolha uma imagem portadora ou use a de exemplo'; return; }
+  btn.disabled = true;
+  try {
+    const d = await api('/api/cofre/cifrar', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        texto: $('#oc-texto').value, senha: $('#oc-senha').value,
+        ocultar_em_imagem: true, imagem_b64: portadora.b64,
+      }),
+    });
+    const e = d.esteganografia;
+    const suspeita = e.esteganalise.suspeita === 'alta';
+    $('#oc-resultado').innerHTML = `
+      <div class="panel"><div class="panel-head"><h2 class="h3">Conteúdo oculto</h2>
+        ${suspeita ? tag('detectável por esteganálise', 'tag-warn') : tag('não detectado pela esteganálise', 'tag-ok')}</div>
+        <div class="panel-body stack">
+          <div class="measures">
+            <div><span class="label">PSNR</span><span class="num-lg">${nf(e.qualidade.psnr_db)} dB</span><div class="meta">acima de 40 dB é imperceptível</div></div>
+            <div><span class="label">Ocupação</span><span class="num-lg">${pct(e.ocupacao_pct)}</span><div class="meta">de ${ni(e.capacidade_bytes)} bytes disponíveis</div></div>
+            <div><span class="label">Subpixels alterados</span><span class="num-lg">${pct(e.qualidade.pct_alterado, 3)}</span><div class="meta">desvio máximo de ${e.qualidade.desvio_maximo} por canal</div></div>
+            <div><span class="label">Envelope oculto</span><span class="num-lg">${ni(d.metadados.bytes_cifrados)}</span><div class="meta">bytes, já cifrados</div></div>
+          </div>
+          <div class="img-compare">
+            <figure><img class="ampliavel" data-lado="antes" alt="Imagem portadora original" src="data:image/png;base64,${portadora.b64}">
+              <figcaption class="meta">Antes</figcaption></figure>
+            <figure><img class="ampliavel" data-lado="depois" alt="Imagem com o conteúdo oculto" src="data:image/png;base64,${e.imagem_b64}">
+              <figcaption class="meta">Depois, com a mensagem dentro</figcaption></figure>
+          </div>
+          <div class="row">
+            <button class="btn btn-primary" id="btn-comparar">
+              <svg><use href="#ic-image"/></svg>Comparar em tela cheia</button>
+            <a class="btn" download="finalpay-oculto.png" href="data:image/png;base64,${e.imagem_b64}">
+              <svg><use href="#ic-download"/></svg>Baixar imagem</a>
+            <span class="meta">as setas alternam entre antes e depois sem mover a imagem</span>
+          </div>
+        </div></div>`;
+    lupa.antes = portadora.b64;
+    lupa.depois = e.imagem_b64;
+    lupa.nota = `${ni(d.metadados.bytes_cifrados)} bytes ocultos · PSNR ${nf(e.qualidade.psnr_db)} dB · ` +
+                `${pct(e.qualidade.pct_alterado, 3)} dos subpixels mudaram, no máximo ${e.qualidade.desvio_maximo} de 255`;
+    $('#btn-comparar').addEventListener('click', () => abrirLupa('antes'));
+    $$('#oc-resultado img.ampliavel').forEach((img) =>
+      img.addEventListener('click', () => abrirLupa(img.dataset.lado)));
+    atualizarLog();
+  } catch (e) { erro.textContent = e.message; }
+  finally { btn.disabled = false; }
+});
+
+/* exemplo pronto para quem quer demonstrar so a extracao */
+$('#btn-rev-exemplo').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const erro = $('#rev-erro');
+  erro.textContent = '';
+  btn.disabled = true;
+  try {
+    const senha = $('#rev-senha').value || 'cofre-finalpay-2026';
+    const d = await api(`/api/estego/exemplo?senha=${encodeURIComponent(senha)}`);
+    exemploRevelar = d.imagem_b64;
+    lupa.antes = d.portadora_b64;
+    lupa.depois = d.imagem_b64;
+    lupa.nota = `${ni(d.bytes_ocultos)} bytes ocultos · PSNR ${nf(d.qualidade.psnr_db)} dB`;
+    $('#rev-saida').innerHTML = `<div class="note"><svg><use href="#ic-info"/></svg><div>
+      <b>Imagem de exemplo carregada</b>, com ${ni(d.bytes_ocultos)} bytes já escondidos.
+      Clique em <b>Revelar</b> para extrair, ou compare as duas versões em tela cheia.</div></div>
+      <div class="row" style="margin-top:12px">
+        <img class="ampliavel" data-lado="depois" alt="Imagem de exemplo com conteúdo oculto"
+             src="data:image/png;base64,${d.imagem_b64}"
+             style="width:130px;border:1px solid var(--line);border-radius:var(--r)">
+        <button class="btn btn-sm" id="btn-comparar-rev">
+          <svg><use href="#ic-image"/></svg>Comparar em tela cheia</button>
+      </div>`;
+    $('#btn-comparar-rev').addEventListener('click', () => abrirLupa('antes'));
+    $$('#rev-saida img.ampliavel').forEach((img) =>
+      img.addEventListener('click', () => abrirLupa(img.dataset.lado)));
+  } catch (e) { erro.textContent = e.message; }
+  finally { btn.disabled = false; }
+});
+
+$('#btn-revelar').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const saida = $('#rev-saida');
+  const arq = await lerB64($('#rev-imagem'));
+  const imagem = arq ? arq.b64 : exemploRevelar;
+  if (!imagem) {
+    saida.innerHTML = `<div class="note"><svg><use href="#ic-info"/></svg>Escolha a imagem que contém o conteúdo oculto, ou carregue a de exemplo.</div>`;
+    return;
+  }
+  btn.disabled = true;
+  carregando(saida, 'Revelando');
+  try {
+    const d = await api('/api/cofre/decifrar', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ imagem_b64: imagem, senha: $('#rev-senha').value }),
+    });
+    saida.innerHTML = `<div class="note" style="background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)">
+        <svg><use href="#ic-info"/></svg><div><b>Conteúdo recuperado da imagem.</b>
+        ${ni(d.bytes)} bytes em ${nf(d.latencia_ms)} ms.</div></div>
+      ${d.texto !== null ? `<pre class="code wrap" style="margin-top:12px">${esc(d.texto.slice(0, 1200))}</pre>` : ''}`;
+  } catch (e) {
+    saida.innerHTML = `<div class="note note-warn"><svg><use href="#ic-alert"/></svg>
+      <div><b>Nada revelado.</b> ${esc(e.message)}</div></div>`;
+  } finally { btn.disabled = false; }
+  atualizarLog();
+});
+
 /* ------------------------------------------------------------------ inicio */
 $('#btn-bateria').addEventListener('click', async (ev) => {
   const btn = ev.currentTarget;
   btn.disabled = true;
-  $('#status-bateria').textContent = 'executando…';
+  $('#status-bateria').textContent = 'executando a bateria completa…';
   try {
-    await api('/api/experimentos/executar?rapido=true', { method: 'POST' });
+    // Bateria completa: o botao substitui os resultados atuais, entao tem de
+    // produzir os definitivos, nunca uma amostra reduzida.
+    await api('/api/experimentos/executar?rapido=false', { method: 'POST' });
     const esperar = setInterval(async () => {
       try {
         const s = await api('/api/status');
@@ -673,9 +575,12 @@ async function iniciar() {
       : 'nenhuma bateria executada';
     estado.resultados = await api('/api/resultados');
     estado.nomes = estado.resultados?.bigdata?.nomes_exibicao ?? null;
+    estado.nomesCurtos = estado.resultados?.bigdata?.nomes_curtos ?? null;
   } catch (e) {
-    $('#status-bateria').textContent = 'sem resultados';
-    falha($('#panorama-verdito'), e);
+    // Cada pagina mostra a propria falha quando nao ha resultados; aqui basta
+    // o estado no topo, sem apontar para um elemento que nao existe mais.
+    $('#status-bateria').textContent = 'sem resultados: rode a bateria';
+    console.error('iniciar', e);
   }
 }
 

@@ -45,7 +45,7 @@ Parte 4 do enunciado a partir do que esta na tela.
 
 A maioria dos trabalhos da disciplina implementa uma cifra OU ataca uma cifra.
 O FinalPay faz as duas coisas sobre a mesma base de codigo e deixa o resultado
-cair de um lado so quando os numeros mandam: a cifra autoral FPC-128 convive com
+cair de um lado so quando os numeros mandam: a cifra propria FPC-128 convive com
 uma variante deliberadamente enfraquecida, e os mesmos tres ataques rodam contra
 as duas. O veredito de seguranca e derivado dos experimentos em tempo de
 execucao, nunca digitado a mao.
@@ -64,7 +64,7 @@ execucao, nunca digitado a mao.
 ## Capabilities and Constraints
 
 Capacidades confirmadas (todas implementadas e medidas):
-- cifragem simetrica autoral FPC-128 (SPN, bloco 128 bits, chave 256 bits,
+- cifragem simetrica propria FPC-128 (SPN, bloco 128 bits, chave 256 bits,
   14 rodadas) nos modos CTR autenticado e ECB (este ultimo so para analise);
 - camada AES-256-GCM como algoritmo alternativo e linha de base de comparacao;
 - chave dinamica por mensagem: PBKDF2 + HKDF sobre salt e nonce aleatorios;
@@ -77,7 +77,7 @@ Capacidades confirmadas (todas implementadas e medidas):
   diferencial e estatistico/frequencia.
 
 Restricoes:
-- a cifra autoral e um exercicio academico, nao um algoritmo de producao; isso
+- o FPC-128 e um exercicio academico, nao um algoritmo de producao; isso
   precisa estar dito na propria interface, nao escondido no relatorio;
 - a implementacao nao e de tempo constante (canal lateral de temporizacao);
 - o conjunto de eventos e sintetico, com rotulos conhecidos — e o que torna
@@ -124,7 +124,7 @@ terceiros, auditoria externa da cifra, dados de usuarios reais.
    calculado pelo codigo; se um experimento nao rodou, a interface diz isso.
 2. **Mostrar os dois lados.** Toda propriedade de seguranca e apresentada junto
    da variante enfraquecida que a perde, porque e a comparacao que prova o ponto.
-3. **A ressalva anda junto com o resultado.** O limite de uma cifra autoral e
+3. **A ressalva anda junto com o resultado.** O limite de uma cifra propria e
    parte da entrega, nao uma nota de rodape.
 4. **Caber na distancia da sala.** Qualquer evidencia central precisa ser legivel
    num projetor, a varios metros.

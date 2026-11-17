@@ -1,13 +1,13 @@
-# FinalPay — Sistema Criptográfico e Análise de Ataques
+# FinalPay, Sistema Criptográfico e Análise de Ataques
 
-**Disciplina:** Cibersegurança Aplicada a Dados e IA — CESAR School
+**Disciplina:** Cibersegurança Aplicada a Dados e IA: CESAR School
 **Professora:** Renatta Nigro
 **Grupo:** Claudio Alves, Ian Nunes, Maria Augusta, Gabriel Lima, Gabriel Rodrigues, Vinicius Ventura
-**Data:** 16/11/2026
+**Data:** 17/11/2026
 
 > Todos os números deste relatório foram produzidos pela bateria de experimentos
 > do próprio sistema (`python -m finalpay.experiments`), executada em
-> 2026-11-16 22:51:00 sobre Darwin arm64,
+> 2026-11-17 09:25:25 sobre Darwin arm64,
 > Python 3.14.6. Nenhum valor foi transcrito à mão.
 
 ---
@@ -15,13 +15,13 @@
 ## 1. Resumo executivo
 
 O FinalPay é o cofre criptográfico de um banco digital fictício. Ele cifra
-transações, documentos e imagens com uma cifra de bloco autoral (**FPC-128**),
+transações, documentos e imagens com uma cifra de bloco própria (**FPC-128**),
 esconde o resultado dentro de imagens por esteganografia, registra cada operação
 num lago de dados de 1.999.952 eventos e usa aprendizado de
 máquina para apontar comportamento anormal.
 
 O mesmo sistema ataca a si próprio. Os três ataques exigidos pelo enunciado
-— força bruta, diferencial e estatístico — rodam contra duas versões da cifra:
+, força bruta, diferencial e estatístico, rodam contra duas versões da cifra:
 a íntegra, de 14 rodadas com difusão, e uma variante deliberadamente
 enfraquecida, de 1 rodada sem MixColumns. **A variante enfraquecida cai; a
 íntegra não cede a nenhum dos três.** É essa comparação que sustenta o veredito
@@ -29,9 +29,9 @@ da Parte 4, e não uma afirmação de que "o sistema é seguro".
 
 | Medida | FPC-128 íntegro | Variante enfraquecida | AES-256 |
 |---|---|---|---|
-| Efeito avalanche | **49,99%** | 3,17% | 50,04% |
-| Entropia da saída (bits/byte) | **7,9983** | 6,6082 | 7,9984 |
-| Texto recuperado por análise de frequência | 3,87% | **62,97%** | — |
+| Efeito avalanche | **50,11%** | 3,09% | 50,01% |
+| Entropia da saída (bits/byte) | **7,9985** | 6,5870 | 7,9984 |
+| Texto recuperado por análise de frequência | 4,29% | **60,15%** |: |
 | Distinguível de permutação aleatória | Não | **Sim** | Não |
 
 ---
@@ -43,7 +43,7 @@ As seis camadas pedidas no enunciado, e onde cada uma vive no código:
 | # | Camada | Função | Implementação |
 |---|---|---|---|
 | 1 | Entrada de dados | Texto, arquivos e imagens | `finalpay/api.py` |
-| 2 | Criptografia | FPC-128 autoral + AES-256-GCM | `finalpay/cipher.py`, `finalpay/baseline.py` |
+| 2 | Criptografia | FPC-128 próprio + AES-256-GCM | `finalpay/cipher.py`, `finalpay/baseline.py` |
 | 3 | Esteganografia | Ocultação em imagens PNG | `finalpay/stego.py` |
 | 4 | Big Data | Geração, Parquet particionado, DuckDB | `finalpay/events.py`, `finalpay/lake.py` |
 | 5 | Inteligência Artificial | Isolation Forest sobre janelas | `finalpay/detect.py` |
@@ -93,9 +93,34 @@ de saída com probabilidade maior que 2^-6.
 **Difusão.** O MixColumns multiplica cada coluna do estado por uma matriz MDS
 sobre GF(2⁸), espalhando um byte alterado sobre os quatro bytes da coluna. Junto
 com o ShiftRows, isso faz um único bit percorrer o bloco inteiro em poucas
-rodadas — medido na seção 6.1.
+rodadas, medido na seção 6.1.
 
-### 3.3 A chave nunca é fixa
+### 3.3 O que é nosso e o que vem da família do AES
+
+Esta é a pergunta que o trabalho precisa responder sem rodeios. A **estrutura**
+do FPC-128 é a mesma do AES, e isso é deliberado: é a rede SPN com S-box
+baseada em inverso multiplicativo em GF(2⁸) que garante as boas propriedades,
+e reinventá-la daria um resultado pior, não mais original. Os **três
+componentes concretos**, porém, são escolha nossa, e nenhum coincide com o do
+AES:
+
+| Componente | FPC-128 (nosso) | AES | Como foi escolhido |
+|---|---|---|---|
+| Transformação afim da S-box | rotações (0, 1, 2, 3, 5), constante 0x0D | rotações (0, 1, 2, 3, 4), constante 0x63 | busca exaustiva entre as afins invertíveis, exigindo bijeção, zero ponto fixo e uniformidade diferencial 4 |
+| Permutação de bytes | deslocamentos (0, 2, 3, 1) | deslocamentos (0, 1, 2, 3) | deslocamentos distintos, para que cada coluna de saída receba um byte de cada coluna de entrada |
+| Matriz de difusão | circulante (1, 1, 3, 2) | circulante (2, 3, 1, 1) | busca entre circulantes de coeficientes pequenos, verificando MDS por todos os menores |
+| Escalonamento de chaves | HKDF sobre HMAC-SHA256 | expansão do Rijndael | derivado do nonce da mensagem, o que torna as subchaves diferentes a cada operação |
+
+A S-box resultante difere da do AES **nas 256 posições**. As propriedades que
+importam continuam no mesmo patamar, e foram medidas, não presumidas:
+uniformidade diferencial 4, zero ponto fixo, difusão completa na
+rodada 2 e critério estrito de avalanche satisfeito em todas as
+16.384 células (§6.2).
+
+O teste `test_sbox_e_propria_e_nao_a_do_aes` existe exatamente para impedir que
+alguém reintroduza a construção do AES sem perceber.
+
+### 3.4 A chave nunca é fixa
 
 O enunciado exige que a chave influencie a cifragem e não seja fixa. Aqui são
 três camadas:
@@ -108,13 +133,13 @@ três camadas:
    subchaves de 16 bytes.
 
 Consequência verificável: cifrar o mesmo texto com a mesma senha duas vezes
-produz envelopes diferentes — confirmado pelo código
+produz envelopes diferentes, confirmado pelo código
 (`True`).
 
-### 3.4 Integridade
+### 3.5 Integridade
 
 O envelope é autenticado com HMAC-SHA256 no esquema *encrypt-then-MAC*. Alterar
-um único bit do texto cifrado faz a decifragem falhar em vez de devolver lixo —
+um único bit do texto cifrado faz a decifragem falhar em vez de devolver lixo 
 verificado (`True`). É esse mecanismo que o
 dashboard exibe como lacre íntegro ou violado.
 
@@ -135,7 +160,7 @@ texto/arquivo/imagem
 O modo CTR transforma a cifra de bloco em cifra de fluxo: o bloco cifrado é o
 contador, e o texto claro é combinado por XOR com esse fluxo. Isso elimina o
 preenchimento e, sobretudo, faz blocos claros iguais produzirem saídas
-diferentes — o problema que a seção 6.6 demonstra no modo ECB.
+diferentes, o problema que a seção 6.6 demonstra no modo ECB.
 
 ---
 
@@ -149,7 +174,7 @@ diferentes — o problema que a seção 6.6 demonstra no modo ECB.
 | 4 | Critério estrito de avalanche (SAC) | 128×128 probabilidades de inversão | 512 por célula |
 | 5 | Tabela de diferenças (DDT) | limite teórico por rodada | 65.536 pares |
 | 6 | Distinguidor diferencial | diferença de saída mais provável | 100.000 pares |
-| 7 | Força bruta | taxa real de chaves/s e projeção | 110.592 chaves |
+| 7 | Força bruta | taxa real de chaves/s e projeção | 34.816 chaves |
 | 8 | Dicionário | custo imposto pelo PBKDF2 | 7 senhas |
 | 9 | Perfil estatístico | entropia, χ², IC, NIST monobit e corridas | 120.000 bytes |
 | 10 | Análise de frequência | texto recuperado sem chave | 120.000 bytes |
@@ -167,8 +192,8 @@ Reproduzíveis por `python -m finalpay.experiments` e verificados por
 
 ### 6.1 Efeito avalanche
 
-Inverter **um** bit do texto claro altera **49,99%** dos bits do
-texto cifrado — o ideal é 50%. O desvio padrão medido foi 5,686,
+Inverter **um** bit do texto claro altera **50,11%** dos bits do
+texto cifrado, o ideal é 50%. O desvio padrão medido foi 5,698,
 praticamente igual ao 5,657
 esperado de uma distribuição binomial(128; 0,5). Em outras palavras, a saída se
 comporta como se cada bit fosse sorteado por moeda honesta.
@@ -176,42 +201,42 @@ comporta como se cada bit fosse sorteado por moeda honesta.
 | Rodada | Bits alterados | % do bloco |
 |---|---|---|
 | 0 | 1,00 | 0,78% |
-| 1 | 16,31 | 12,74% |
-| 2 | 64,11 | 50,09% |
-| 3 | 63,87 | 49,90% |
-| 4 | 64,04 | 50,03% |
-| 5 | 63,84 | 49,88% |
-| 6 | 64,18 | 50,14% |
-| 7 | 64,10 | 50,08% |
-| 8 | 64,10 | 50,08% |
-| 9 | 63,96 | 49,97% |
-| 10 | 63,95 | 49,96% |
-| 11 | 64,01 | 50,01% |
-| 12 | 64,04 | 50,03% |
-| 13 | 64,03 | 50,03% |
-| 14 | 63,99 | 49,99% |
+| 1 | 15,94 | 12,46% |
+| 2 | 64,05 | 50,04% |
+| 3 | 64,03 | 50,02% |
+| 4 | 63,92 | 49,93% |
+| 5 | 63,93 | 49,95% |
+| 6 | 63,97 | 49,98% |
+| 7 | 64,06 | 50,05% |
+| 8 | 64,20 | 50,16% |
+| 9 | 64,05 | 50,04% |
+| 10 | 64,01 | 50,01% |
+| 11 | 63,98 | 49,98% |
+| 12 | 64,06 | 50,04% |
+| 13 | 63,97 | 49,97% |
+| 14 | 64,14 | 50,11% |
 
 A difusão se completa na **rodada 2**. Com 14 rodadas,
 a cifra opera com margem de segurança de 7,0×
 sobre o mínimo necessário.
 
-Comparações na mesma medição: AES-256 ficou em 50,04% e a variante
-sem difusão, em **3,17%** — ou seja, alterar um bit da entrada
-muda só 4,1 dos 128 bits de saída, deixando o resto do
+Comparações na mesma medição: AES-256 ficou em 50,01% e a variante
+sem difusão, em **3,09%**, ou seja, alterar um bit da entrada
+muda só 4,0 dos 128 bits de saída, deixando o resto do
 bloco intacto e visível ao atacante.
 
-A avalanche de chave foi de 49,97%: um bit
+A avalanche de chave foi de 50,06%: um bit
 trocado na chave muda metade do texto cifrado.
 
 ### 6.2 Critério estrito de avalanche (SAC)
 
 O SAC exige que a inversão de qualquer bit *i* da entrada inverta qualquer bit
-*j* da saída com probabilidade 0,5 — nas 16.384 células da matriz 128×128.
+*j* da saída com probabilidade 0,5, nas 16.384 células da matriz 128×128.
 
 | Variante | Média | Desvio máximo | Limite (Bonferroni 5%) | Células fora | Satisfaz |
 |---|---|---|---|---|---|
-| FPC-128 íntegro | 0,50004 | 0,08984 | 0,10313 | 0 | **Sim** |
-| 1 rodada sem difusão | 0,03150 | 0,50000 | 0,10313 | 15.363 | **Não** |
+| FPC-128 íntegro | 0,49997 | 0,09180 | 0,10313 | 0 | **Sim** |
+| 1 rodada sem difusão | 0,03092 | 0,50000 | 0,10313 | 15.363 | **Não** |
 
 O limite usa correção de Bonferroni porque são 16.384 testes simultâneos: sem
 ela, o maior desvio estouraria 3σ só pela quantidade de células, e o teste
@@ -219,33 +244,33 @@ acusaria falha onde não há.
 
 ### 6.3 Ataque de força bruta
 
-Taxa real medida nesta máquina: **112.222 chaves/s** (um
+Taxa real medida nesta máquina: **106.935 chaves/s** (um
 núcleo, implementação vetorizada). Com entropia reduzida a 18 bits,
-a chave foi encontrada após 110.592 tentativas — o ataque
+a chave foi encontrada após 34.816 tentativas, o ataque
 funciona, o que valida a medição.
 
 Extrapolando a mesma taxa:
 
 | Espaço de chaves | Cenário | Tempo esperado | Viável? |
 |---|---|---|---|
-| 2^32 | 1 núcleo (medido) | 19135,92 s | Sim |
-| 2^56 | 1 núcleo (medido) | 10.173 anos | Não |
-| 2^64 | 1 núcleo (medido) | 2,604×10⁶ anos | Não |
-| 2^128 | 1 núcleo (medido) | 4,804×10²⁵ anos | Não |
-| 2^128 | 1 milhão de GPUs | 4,804×10¹⁹ anos | Não |
-| 2^256 | 1 núcleo (medido) | 1,635×10⁶⁴ anos | Não |
-| 2^256 | 1 milhão de GPUs | 1,635×10⁵⁸ anos | Não |
+| 2^32 | 1 núcleo (medido) | 20082,00 s | Sim |
+| 2^56 | 1 núcleo (medido) | 10.676 anos | Não |
+| 2^64 | 1 núcleo (medido) | 2,733×10⁶ anos | Não |
+| 2^128 | 1 núcleo (medido) | 5,042×10²⁵ anos | Não |
+| 2^128 | 1 milhão de GPUs | 5,042×10¹⁹ anos | Não |
+| 2^256 | 1 núcleo (medido) | 1,716×10⁶⁴ anos | Não |
+| 2^256 | 1 milhão de GPUs | 1,716×10⁵⁸ anos | Não |
 
-Para os 256 bits do FPC-128 seriam necessários **1,635×10⁵⁸ anos**
-mesmo com um milhão de GPUs — cerca de
-1.184.637.235.925.543.575.682.883.890.923.688.407.302.649.413.632 vezes a idade do universo. O número
+Para os 256 bits do FPC-128 seriam necessários **1,716×10⁵⁸ anos**
+mesmo com um milhão de GPUs, cerca de
+1,24×10⁴⁸ vezes a idade do universo. O número
 de rodadas não altera isso: o espaço de chaves é o mesmo na variante enfraquecida.
 
 **Ataque de dicionário.** Contra a senha do usuário, o PBKDF2 limita o atacante a
-114,2 tentativas por segundo. A senha fraca
+114,6 tentativas por segundo. A senha fraca
 `banco123` caiu em 0,06 s. Já uma senha forte de
-12 caracteres exigiria 6,605×10¹³ anos. **A senha, e não a cifra, é o elo
-mais fraco** — e é por isso que o alongamento de chave existe.
+12 caracteres exigiria 6,581×10¹³ anos. **A senha, e não a cifra, é o elo
+mais fraco**, e é por isso que o alongamento de chave existe.
 
 ### 6.4 Ataque diferencial
 
@@ -260,11 +285,11 @@ aplicando sempre a mesma diferença de entrada:
 | Variante | Diferenças de saída distintas | Repetição máxima | Distinguível |
 |---|---|---|---|
 | FPC-128 íntegro | 100,00% | 1 ocorrência(s) | Não |
-| 1 rodada sem difusão | 0,13% | 1.529 ocorrências | Sim |
+| 1 rodada sem difusão | 0,13% | 1.536 ocorrências | Sim |
 
-Na cifra íntegra, as saídas são praticamente todas distintas — exatamente o que
+Na cifra íntegra, as saídas são praticamente todas distintas, exatamente o que
 se esperaria de uma permutação aleatória. Na variante enfraquecida,
-1.529 pares caem na **mesma** diferença de
+1.536 pares caem na **mesma** diferença de
 saída: é uma característica diferencial explorável, e o ataque tem por onde
 começar.
 
@@ -276,19 +301,19 @@ sob diferentes tratamentos:
 | Amostra | Entropia | χ² (p) | IC | Correlação serial | Monobit | Corridas | Blocos repetidos |
 |---|---|---|---|---|---|---|---|
 | Texto claro | 4,3129 | 0,0000 | 0,116338 | 0,53954 | **falha** | **falha** | 36,11% |
-| FPC-128 · CTR, 14 rodadas | 7,9983 | 0,1091 | 0,003907 | -0,00241 | passa | passa | 0,00% |
-| FPC-128 · ECB, 14 rodadas | 7,8954 | 0,0000 | 0,004576 | -0,00329 | passa | passa | 36,10% |
-| FPC-128 · ECB, 1 rodada, sem difusão | 6,6082 | 0,0000 | 0,014738 | 0,00507 | **falha** | **falha** | 36,11% |
-| AES-256-GCM | 7,9984 | 0,2334 | 0,003907 | -0,00258 | passa | passa | 0,00% |
-| /dev/urandom (controle) | 7,9985 | 0,5087 | 0,003906 | -0,00370 | passa | passa | 0,00% |
+| FPC-128 · CTR, 14 rodadas | 7,9985 | 0,6823 | 0,003906 | 0,00208 | passa | passa | 0,00% |
+| FPC-128 · ECB, 14 rodadas | 7,8959 | 0,0000 | 0,004572 | 0,00691 | passa | passa | 36,10% |
+| FPC-128 · ECB, 1 rodada, sem difusão | 6,5870 | 0,0000 | 0,015242 | 0,06057 | **falha** | **falha** | 36,11% |
+| AES-256-GCM | 7,9984 | 0,4132 | 0,003906 | 0,00290 | passa | passa | 0,00% |
+| /dev/urandom (controle) | 7,9984 | 0,3133 | 0,003907 | 0,00181 | passa | passa | 0,00% |
 
 O texto claro tem entropia 4,3129 bits/byte e
 falha em todos os testes. A saída do FPC-128 em modo CTR tem
-7,9983 bits/byte (máximo teórico 8), índice de
-coincidência 0,003907 contra o 0,003906 de uma fonte
-uniforme, e χ² com p = 0,1091 — não se rejeita a hipótese de
+7,9985 bits/byte (máximo teórico 8), índice de
+coincidência 0,003906 contra o 0,003906 de uma fonte
+uniforme, e χ² com p = 0,6823, não se rejeita a hipótese de
 uniformidade. Para efeito de controle, `/dev/urandom` na mesma medição deu
-entropia 7,9985 e p = 0,5087.
+entropia 7,9984 e p = 0,3133.
 **A saída da cifra é estatisticamente indistinguível de ruído do sistema
 operacional.**
 
@@ -297,13 +322,12 @@ operacional.**
 Mensagens bancárias usam registros de largura fixa (80
 bytes aqui), e isso tem consequência: sem o MixColumns, cada posição do bloco
 permanece uma substituição monoalfabética independente. A cifra apenas renomeia e
-reposiciona bytes. Um atacante que conheça o formato — realista num banco —
-levanta a frequência de referência e remapeia coluna a coluna.
+reposiciona bytes. Um atacante que conheça o formato, realista num banco, levanta a frequência de referência e remapeia coluna a coluna.
 
 | Alvo | Acerto | Linha de base* | Posições expostas | Quebrado |
 |---|---|---|---|---|
-| 1 rodada, sem difusão | **62,97%** | 31,26% | **40 de 80** | Sim |
-| 14 rodadas, com difusão | 3,87% | 31,26% | 0 de 80 | Não |
+| 1 rodada, sem difusão | **60,15%** | 31,26% | **38 de 80** | Sim |
+| 14 rodadas, com difusão | 4,29% | 31,26% | 0 de 80 | Não |
 
 \* Linha de base = acerto de quem nem olha o texto cifrado e sempre chuta o byte
 mais comum do formato. Comparar com 1/256 seria generoso demais.
@@ -312,10 +336,10 @@ Trecho real recuperado da variante enfraquecida, **sem nenhuma chave**:
 
 ```
 original  : TX473188 BOLETO  R$    47523.68 CT1313-1 Inter     2026-11-27 APROVADO
-recuperado: TR686049 BEBETO  X$    15506.38 CT4015-3 SBn10     2026-11 03 RIQDSADO    -
+recuperado: TR686049 BEBETO  X     1550b.38 CT4015-3 SBn10    $2026-11 03 RIQDSADO    -
 ```
 
-Contra a cifra íntegra o mesmo ataque entrega 3,87%, ou
+Contra a cifra íntegra o mesmo ataque entrega 4,29%, ou
 seja, **abaixo** da linha de base: o atacante teria se saído melhor chutando.
 
 ### 6.7 O modo importa mais que as rodadas
@@ -323,9 +347,9 @@ seja, **abaixo** da linha de base: o atacante teria se saído melhor chutando.
 | Tratamento | Blocos repetidos | Entropia |
 |---|---|---|
 | Imagem original | 98,05% | 2,9112 |
-| ECB · 1 rodada, sem difusão | 98,05% | 6,4730 |
-| ECB · 14 rodadas | 98,05% | 6,5527 |
-| CTR · 14 rodadas | 0,00% | 7,9992 |
+| ECB · 1 rodada, sem difusão | 98,05% | 6,3620 |
+| ECB · 14 rodadas | 98,05% | 6,5609 |
+| CTR · 14 rodadas | 0,00% | 7,9991 |
 
 Cifrando os pixels de uma imagem estruturada, o modo ECB preserva
 36,10% dos blocos repetidos **mesmo com
@@ -339,14 +363,14 @@ Uma cifra forte em modo errado continua vazando estrutura.
 |---|---|
 | Capacidade | 55.286 bytes (1.650,30% do arquivo) |
 | Carga embutida | 4.877 bytes (8,82% da capacidade) |
-| PSNR | **61,67 dB** |
-| Erro quadrático médio | 0,044232 |
-| Subpixels alterados | 19.567 de 442.368 (4,423%) |
+| PSNR | **61,71 dB** |
+| Erro quadrático médio | 0,043889 |
+| Subpixels alterados | 19.415 de 442.368 (4,389%) |
 | Desvio máximo por canal | 1 |
 | Extração com chave errada | rejeitada |
 
 Acima de 40 dB de PSNR a alteração é considerada imperceptível; aqui ficou em
-61,67 dB, com desvio máximo de
+61,71 dB, com desvio máximo de
 1 por canal.
 
 **Esteganálise.** O ataque de qui-quadrado de Westfeld varre a imagem em segmentos
@@ -363,7 +387,7 @@ carga de 8.317 bytes
 O LSB sequencial clássico acende
 3 segmentos;
 a versão do FinalPay, com posições derivadas da chave, acende
-**0** — igual à
+**0**, igual à
 imagem limpa. Espalhar os bits por uma permutação secreta não é detalhe de
 implementação: é o que remove a assinatura.
 
@@ -375,9 +399,9 @@ implementação: é o que remove a assinatura.
 | Período | 30 dias, 800 usuários, 4.120 IPs |
 | Partições Parquet | 30 |
 | Em disco | 48,57 MB (24,29 B por evento) |
-| Ingestão | 2,34 s |
-| Consulta de resumo | 0,140 s |
-| Agregação em janelas | 0,303 s |
+| Ingestão | 2,27 s |
+| Consulta de resumo | 0,102 s |
+| Agregação em janelas | 0,245 s |
 | Taxa de falha global | 2,405% |
 | Volume financeiro simulado | R$ 295.000.802,98 |
 
@@ -393,34 +417,40 @@ medir a qualidade depois.
 |---|---|
 | Janelas analisadas | 43.985 |
 | Janelas anômalas (verdade) | 280 (0,637%) |
-| ROC AUC | **0,9969** |
-| Precisão média (AP) | 0,8297 |
-| Ganho sobre o acaso | 130,3× |
+| ROC AUC | **0,9965** |
+| Precisão média (AP) | 0,8036 |
+| Ganho sobre o acaso | 126,2× |
 | Alertas emitidos | 440 |
-| Precisão / Revocação / F1 | 0,539 / 0,846 / 0,658 |
+| Precisão / Revocação / F1 | 0,518 / 0,814 / 0,633 |
 
 Como o orçamento de alertas é uma decisão de operação, e não do modelo:
 
 | Orçamento de alertas | % das janelas | Precisão | Revocação |
 |---|---|---|---|
-| 109 | 0,25% | 0,991 | 0,386 |
-| 219 | 0,50% | 0,849 | 0,664 |
-| 439 | 1,00% | 0,540 | 0,846 |
-| 879 | 2,00% | 0,296 | 0,929 |
+| 109 | 0,25% | 0,982 | 0,382 |
+| 219 | 0,50% | 0,854 | 0,668 |
+| 439 | 1,00% | 0,517 | 0,811 |
+| 879 | 2,00% | 0,297 | 0,932 |
 
 Revisando apenas 0,25% das janelas,
-a precisão é de 99,1%: quase todo
+a precisão é de 98,2%: quase todo
 alerta é real.
 
-Desempenho por tipo de anomalia — os cinco previstos no enunciado:
+Desempenho por tipo de anomalia, os cinco previstos no enunciado:
 
-| Anomalia | Janelas | Detectadas | Revocação | Tipo classificado corretamente |
-|---|---|---|---|---|
-| Adulteração de arquivo | 28 | 28 | 100,0% | 96,4% |
-| Falhas de decifragem | 27 | 27 | 100,0% | 100,0% |
-| Força bruta de login | 31 | 30 | 96,8% | 100,0% |
-| Acesso atípico | 171 | 137 | 80,1% | 100,0% |
-| Surto de eventos | 23 | 15 | 65,2% | 100,0% |
+| Anomalia | Janelas | Detectadas | Revocação | Posto mediano de risco | Tipo correto |
+|---|---|---|---|---|---|
+| Adulteração de arquivo | 28 | 25 | 89,3% | 97 de 43.985 (0,22%) | 100,0% |
+| Força bruta de login | 31 | 30 | 96,8% | 111 de 43.985 (0,25%) | 100,0% |
+| Acesso atípico | 171 | 146 | 85,4% | 145 de 43.985 (0,33%) | 100,0% |
+| Falhas de decifragem | 27 | 26 | 96,3% | 156 de 43.985 (0,35%) | 100,0% |
+| Surto de eventos | 23 | 1 | 4,3% | 745 de 43.985 (1,69%) | 100,0% |
+
+O **posto mediano** mostra onde cada tipo cai no ranking de risco, e não depende do orçamento
+de alertas. Os quatro primeiros ficam no meio-milésimo mais arriscado. O surto de eventos fica
+no 1,69%
+mais arriscado, o que é longe de passar despercebido, mas não cabe no 1% que a equipe aceita
+revisar.
 
 A anomalia mais difícil é o **surto de eventos**: ela não gera falha nenhuma, só
 volume. As que falham alguma coisa são detectadas quase integralmente.
@@ -429,28 +459,28 @@ volume. As que falham alguma coisa são detectadas quase integralmente.
 
 | Algoritmo | Vazão |
 |---|---|
-| FPC-128 (Python + numpy) | 15,98 MB/s |
-| AES-256-GCM (biblioteca com AES-NI) | 436,37 MB/s |
+| FPC-128 (Python + numpy) | 16,24 MB/s |
+| AES-256-GCM (biblioteca com AES-NI) | 448,61 MB/s |
 
-O AES é 27,3× mais rápido, e isso era esperado:
+O AES é 27,6× mais rápido, e isso era esperado:
 O AES usa instruções AES-NI do processador; o FPC-128 é Python com numpy puro. A comparação mede implementação, não qualidade criptográfica.
 
 ---
 
-## 7. Parte 4 — as quatro perguntas
+## 7. Parte 4: as quatro perguntas
 
 ### O sistema apresenta efeito avalanche?
 
-**Sim.** Inverter 1 bit da entrada altera 49,99% dos bits de saída (o ideal é 50%), com desvio padrão 5,686 contra 5,657 esperado de uma binomial(128; 0,5) — ou seja, a saída se comporta como se cada bit fosse sorteado por moeda honesta. A difusão se completa na rodada 2 e a cifra usa 14. A variante sem difusão fica em 3,17%.
+**Sim.** Inverter 1 bit da entrada altera 50,11% dos bits de saída (o ideal é 50%), com desvio padrão 5,698 contra 5,657 esperado de uma binomial(128; 0,5). Ou seja, a saída se comporta como se cada bit fosse sorteado por moeda honesta. A difusão se completa na rodada 2 e a cifra usa 14. A variante sem difusão fica em 3,09%.
 
 ### Existem padrões na saída?
 
-**Não** — no modo CTR.
-No modo CTR a saída tem entropia 7,9983 bits por byte (o máximo é 8), qui-quadrado com p = 0,1091, o que não rejeita a uniformidade, índice de coincidência 0,003907 (uma fonte uniforme dá 0,003906) e zero blocos repetidos — estatisticamente indistinguível de ruído aleatório. No modo ECB, porém, blocos claros iguais continuam gerando blocos cifrados iguais: 36,10% dos blocos se repetem mesmo com 14 rodadas. O modo de operação pesa mais que o número de rodadas.
+**Não**, no modo CTR.
+No modo CTR a saída tem entropia 7,9985 bits por byte (o máximo é 8), qui-quadrado com p = 0,6823, o que não rejeita a uniformidade, índice de coincidência 0,003906 (uma fonte uniforme dá 0,003906) e zero blocos repetidos: a saída é estatisticamente indistinguível de ruído aleatório. No modo ECB, porém, blocos claros iguais continuam gerando blocos cifrados iguais: 36,10% dos blocos se repetem mesmo com 14 rodadas. O modo de operação pesa mais que o número de rodadas.
 
 ### Qual ataque foi mais eficaz?
 
-**Estatístico / análise de frequência.** Contra o FPC-128 íntegro nenhum dos três ataques obteve vantagem. Contra a variante sem difusão, a análise de frequência foi a mais eficaz porque é a única que entrega o conteúdo: recuperou 62,97% do texto e expôs 40 das 80 posições do registro sem precisar de chave alguma. O diferencial apenas distingue a cifra de aleatório, e a força bruta não sai do lugar em nenhum dos dois casos.
+**Estatístico / análise de frequência.** Contra o FPC-128 íntegro nenhum dos três ataques obteve vantagem. Contra a variante sem difusão, a análise de frequência foi a mais eficaz porque é a única que entrega o conteúdo: recuperou 60,15% do texto e expôs 38 das 80 posições do registro sem precisar de chave alguma. O diferencial apenas distingue a cifra de aleatório, e a força bruta não sai do lugar em nenhum dos dois casos.
 
 Critério de ordenação: severidade do que o atacante obtém (ler o texto > distinguir a cifra > nada). Os três ataques
 produzem resultados de naturezas diferentes e não se comparam por um número
@@ -458,26 +488,26 @@ produzem resultados de naturezas diferentes e não se comparam por um número
 
 | Severidade | Ataque | O que o atacante obtém | Contra a cifra íntegra | Contra a variante enfraquecida |
 |---|---|---|---|---|
-| 3 | Estatístico / análise de frequência | recuperação de texto claro, sem chave nenhuma | 3,87% de acerto, abaixo da linha de base de 31,26% de quem só chuta o byte mais comum | 62,97% do texto recuperado e 40 das 80 posições do registro expostas |
-| 2 | Diferencial | distinguir a cifra de uma permutação aleatória | avalanche de 49,99% e nenhuma diferença de saída repetida em 100.000 pares | avalanche de apenas 3,17% e 1.529 pares caindo na mesma diferença de saída |
-| 1 | Força bruta | nenhum | 1,635×10⁵⁸ anos com 1 milhão de GPUs | igualmente inviável: o espaço de chaves não depende do número de rodadas |
+| 3 | Estatístico / análise de frequência | recuperação de texto claro, sem chave nenhuma | 4,29% de acerto, abaixo da linha de base de 31,26% de quem só chuta o byte mais comum | 60,15% do texto recuperado e 38 das 80 posições do registro expostas |
+| 2 | Diferencial | distinguir a cifra de uma permutação aleatória | avalanche de 50,11% e nenhuma diferença de saída repetida em 100.000 pares | avalanche de apenas 3,09% e 1.536 pares caindo na mesma diferença de saída |
+| 1 | Força bruta | nenhum | 1,716×10⁵⁸ anos com 1 milhão de GPUs | igualmente inviável: o espaço de chaves não depende do número de rodadas |
 
 ### O sistema é seguro? Justifique.
 
-**Sim, com ressalvas.** Dentro do escopo testado — força bruta, diferencial e estatístico — o FPC-128 em modo CTR se comporta como uma cifra moderna e não cedeu a nenhum dos ataques. Isso demonstra solidez de projeto, não maturidade criptográfica: a camada AES-256 existe justamente para o uso real.
+**Sim, com ressalvas.** Dentro do escopo testado, com força bruta, ataque diferencial e análise estatística, o FPC-128 em modo CTR se comporta como uma cifra moderna e não cedeu a nenhum dos ataques. Isso demonstra solidez de projeto, não maturidade criptográfica: a camada AES-256 existe justamente para o uso real.
 
 **A favor:**
 
-- Avalanche de 49,99% e critério estrito de avalanche satisfeito: confusão e difusão adequadas.
-- Saída indistinguível de aleatória em todos os testes aplicados (qui-quadrado p = 0,1091).
-- Espaço de chaves de 256 bits: 1,635×10⁵⁸ anos mesmo com 1 milhão de GPUs.
+- Avalanche de 50,11% e critério estrito de avalanche satisfeito: confusão e difusão adequadas.
+- Saída indistinguível de aleatória em todos os testes aplicados (qui-quadrado p = 0,6823).
+- Espaço de chaves de 256 bits: 1,716×10⁵⁸ anos mesmo com 1 milhão de GPUs.
 - Probabilidade diferencial máxima da S-box de 2^-6 por rodada.
 - Chave dinâmica por mensagem (salt e nonce aleatórios) e integridade por HMAC-SHA256.
 - PBKDF2 com 120.000 iterações encarece o ataque de dicionário em cinco ordens de grandeza.
 
-**Ressalvas — e elas não são formalidade:**
+**Ressalvas: e elas não são formalidade:**
 
-- Cifra autoral sem análise pública: nenhuma cifra deve ir a produção sem anos de criptanálise independente. Em produção, use AES-256.
+- Cifra própria sem análise pública: a estrutura vem da mesma família do AES, mas S-box, matriz de difusão e permutação são escolhas nossas e nunca passaram por criptanálise independente. Em produção, use AES-256.
 - O modo ECB continua vazando estrutura mesmo com 14 rodadas: apenas o modo CTR autenticado deve ser usado.
 - A implementação não é de tempo constante, o que abre risco de ataque por canal lateral de temporização.
 - A análise aqui é empírica: não foi feita criptanálise linear nem prova formal de resistência.
@@ -486,7 +516,7 @@ produzem resultados de naturezas diferentes e não se comparam por um número
 
 ## 8. Conclusão
 
-O FPC-128 passou nos três ataques exigidos. Avalanche de 49,99%,
+O FPC-128 passou nos três ataques exigidos. Avalanche de 50,11%,
 SAC satisfeito em todas as 16.384 células, saída indistinguível de aleatória e
 espaço de chaves de 256 bits colocam a cifra, nas medições feitas, no mesmo
 patamar de comportamento do AES-256.
@@ -495,7 +525,7 @@ O resultado mais útil deste trabalho, porém, não é esse. É a comparação c
 variante enfraquecida, que mostra **de onde** vem a segurança:
 
 1. **Difusão é o que sustenta tudo.** Sem MixColumns, a análise de frequência
-   recupera 62,97% do texto e expõe 40
+   recupera 60,15% do texto e expõe 38
    das 80 posições do registro. Aumentar rodadas não
    corrige: com difusão desligada, 14 rodadas vazam tanto quanto 1.
 2. **O modo de operação pesa mais que o número de rodadas.** O ECB preservou
@@ -503,10 +533,13 @@ variante enfraquecida, que mostra **de onde** vem a segurança:
    cifra íntegra.
 3. **Força bruta é o ataque errado.** Inviável contra as duas variantes; a
    superfície real é a senha, e o PBKDF2 existe para encarecê-la.
-4. **A anomalia mais difícil é a que não quebra nada.** O surto de exfiltração,
-   sem falhas, teve revocação de
-   65,2%,
-   contra ~100% das que geram erro.
+4. **A anomalia mais difícil é a que não quebra nada.** O surto de exfiltração não gera
+   falha nenhuma, só volume: o modelo o coloca no **1,69% mais
+   arriscado** de 43.985 janelas, mas ele fica fora do orçamento de
+   440 alertas, porque perde a disputa para anomalias que falham. Não é o
+   modelo que não enxerga; é o orçamento que não alcança. Dobrando o orçamento para 2%, a
+   revocação sobe de 4,3% para
+   23,0%.
 
 Nada disso faz do FPC-128 uma cifra de produção. Ele não passou por
 criptanálise independente, não é de tempo constante, e não recebeu análise
