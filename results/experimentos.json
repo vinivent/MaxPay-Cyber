@@ -5,7 +5,12 @@
   "modo": "completo",
   "python": "3.14.6",
   "plataforma": "Darwin arm64",
-  "segundos_totais": 7.8
+  "segundos_totais": 7.8,
+  "bigdata_refeito": {
+   "em": "2026-11-17T14:26:44",
+   "python": "3.14.3",
+   "plataforma": "Darwin arm64"
+  }
  },
  "cifra": {
   "nome": "MPC-128",
@@ -37490,13 +37495,18 @@
  },
  "bigdata": {
   "ingestao": {
-   "caminho": "/Users/viniventura/orca/projects/projeto-2/data/lake",
+   "caminho": "data/lake",
    "eventos": 1999952,
    "particoes": 30,
    "arquivos": 30,
    "bytes_em_disco": 48573289,
    "bytes_por_evento": 24.29,
-   "segundos": 2.37
+   "segundos": 2.69
+  },
+  "deteccoes": {
+   "caminho": "data/deteccoes/origem=lote",
+   "registros": 440,
+   "bytes_em_disco": 24914
   },
   "resumo": {
    "eventos": 1999952,
@@ -37506,7 +37516,7 @@
    "falhas": 48091.0,
    "falhas_integridade": 9462.0,
    "bytes_processados": 10033187762.0,
-   "volume_financeiro": 295000802.97999984,
+   "volume_financeiro": 295000802.98000014,
    "latencia_mediana": 13.48,
    "latencia_p99": 45.1,
    "inicio": "2026-10-18 00:00:01",
@@ -37514,9 +37524,9 @@
    "taxa_falha_pct": 2.405
   },
   "desempenho_consultas": {
-   "resumo_segundos": 0.116,
-   "janelas_segundos": 0.327,
-   "ia_segundos": 0.573,
+   "resumo_segundos": 0.104,
+   "janelas_segundos": 0.274,
+   "ia_segundos": 0.645,
    "eventos_por_janela": 45.5,
    "reducao_dimensional": "1.999.952 eventos -> 43.985 janelas"
   },

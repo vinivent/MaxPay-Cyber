@@ -54,7 +54,7 @@
 </svg>
 
 <header class="topbar">
-  <div class="brand"><span class="brand-mark">FP</span>MaxPay</div>
+  <div class="brand"><span class="brand-mark">MP</span>MaxPay</div>
   <span class="brand-tag">Cofre criptográfico</span>
   <div class="topbar-right">
     <span id="status-bateria" class="meta num">carregando…</span>
@@ -121,8 +121,8 @@
       </div>
       <div id="cofre-resultado"></div>
       <div class="panel">
-        <div class="panel-head"><h2 class="h3">Operações desta sessão</h2>
-          <span class="meta">cada uma vira um evento no Antifraude</span></div>
+        <div class="panel-head"><h2 class="h3">Operações registradas</h2>
+          <span class="meta">gravadas no lago de eventos e julgadas no Antifraude</span></div>
         <div class="panel-body flush"><div class="table-wrap"><table id="cofre-log">
           <thead><tr><th>Horário</th><th>Operação</th><th>Algoritmo</th><th>Estado</th><th class="n">Bytes</th><th class="n">Latência</th><th>Detalhe</th></tr></thead>
           <tbody><tr><td colspan="7" class="muted">Nenhuma operação ainda.</td></tr></tbody>
@@ -177,11 +177,23 @@
         <p class="body measure">O que está acontecendo no cofre e o que merece atenção. Os alertas vêm de um modelo treinado sem rótulos sobre o comportamento de cada conta.</p>
       </div>
       <div id="mon-medidas" class="measures"></div>
+      <div class="panel"><div class="panel-head"><h2 class="h3">Cofre ao vivo</h2>
+        <span class="meta">operações reais desta instalação, julgadas pelo modelo treinado no histórico</span></div>
+        <div class="panel-body stack">
+          <div id="vivo-medidas" class="measures"></div>
+          <div class="row">
+            <button id="btn-simular" class="btn btn-primary" title="Dispara 12 tentativas reais de abrir um envelope com senhas de dicionário">Simular ataque ao cofre</button>
+            <button id="btn-vivo-atualizar" class="btn">Atualizar</button>
+            <span id="vivo-erro" class="small" style="color:var(--crit)"></span>
+          </div>
+          <div id="vivo-nota"></div>
+          <div class="table-wrap auto"><table id="tab-vivo"></table></div>
+        </div></div>
       <div class="panel"><div class="panel-head"><h2 class="h3">Atividade</h2>
         <span class="meta">eventos por hora, últimos 30 dias</span></div>
         <div class="panel-body"><div id="chart-serie" data-resumo="Eventos por hora ao longo de 30 dias, com os eventos anômalos destacados"></div></div></div>
       <div class="panel"><div class="panel-head"><h2 class="h3">Alertas</h2>
-        <span class="meta">maior risco primeiro</span></div>
+        <span class="meta" id="alertas-meta">maior risco primeiro</span></div>
         <div class="panel-body flush"><div class="table-wrap"><table id="tab-alertas"></table></div></div></div>
       <div class="grid grid-2">
         <div class="panel"><div class="panel-head"><h2 class="h3">Contas com mais falhas</h2></div>

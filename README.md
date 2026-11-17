@@ -31,7 +31,8 @@ interface, e a tela recarrega sozinha quando o arquivo de resultados muda.
 Outros comandos:
 
 ```bash
-pytest -q                  # 45 testes
+pytest -q                  # 52 testes
+python -m maxpay.experiments --bigdata   # refaz só o lago de eventos, a IA e as detecções
 python -m maxpay.report    # regera docs/RELATORIO.md a partir dos resultados
 python -m maxpay.slides    # regera docs/slides/index.html
 python -m maxpay.guia      # regera docs/GUIA-APRESENTACAO.pdf, o roteiro falado
@@ -62,13 +63,40 @@ HTML. No Canva: **Criar um design → Importar arquivo**.
 | 1 | Entrada de dados | `maxpay/api.py` | texto, arquivos e imagens |
 | 2 | Criptografia | `maxpay/cipher.py`, `maxpay/baseline.py` | MPC-128 próprio + AES-256-GCM |
 | 3 | Esteganografia | `maxpay/stego.py` | LSB em PNG, posições derivadas da chave |
-| 4 | Big Data | `maxpay/events.py`, `maxpay/lake.py` | Parquet particionado + DuckDB |
+| 4 | Big Data | `maxpay/registro.py`, `maxpay/events.py`, `maxpay/lake.py` | registro das operações, Parquet particionado e DuckDB |
 | 5 | Inteligência Artificial | `maxpay/detect.py` | Isolation Forest sobre janelas |
-| 6 | Dashboard | `maxpay/api.py`, `web/` | painel, laboratório e veredito |
+| 6 | Dashboard | `maxpay/api.py`, `web/` | quatro abas, laudo e slides |
 
 Em volta disso: `maxpay/attacks/` (os três ataques), `maxpay/metrics.py`
 (entropia, qui-quadrado, testes NIST), `maxpay/experiments.py` (a bateria) e
 `maxpay/report.py` / `maxpay/slides.py` (os entregáveis).
+
+### Do cofre ao alerta, ao vivo
+
+As seis camadas não são só módulos lado a lado: cada operação real percorre
+todas elas.
+
+```
+Cofre / Ocultar  →  data/vivo/       evento em Parquet, com IP, dispositivo, resultado e integridade
+                 →  DuckDB           a janela de 10 minutos do evento é reagregada
+                 →  Isolation Forest o mesmo modelo treinado no histórico julga a janela
+                 →  data/deteccoes/  janela acima do limiar vira detecção armazenada
+                 →  Antifraude       painel "Cofre ao vivo"
+```
+
+O lago tem três conjuntos, todos fora do Git e recriados por comando:
+
+| Pasta | Conteúdo | Quem escreve |
+|---|---|---|
+| `data/lake/` | histórico sintético e rotulado, ~2 milhões de eventos | a bateria |
+| `data/vivo/` | operações reais do cofre | a API, a cada operação |
+| `data/deteccoes/` | alertas emitidos pela IA, do histórico e ao vivo | a bateria e a API |
+
+Para ver funcionando: abra a aba **Antifraude** e clique em **Simular ataque ao
+cofre**. O botão dispara 12 tentativas reais de abrir um envelope com senhas de
+dicionário; todas são recusadas, registradas, julgadas e a janela aparece como
+alerta. Errar a senha à mão na aba Cofre, cinco vezes ou mais em dez minutos,
+tem o mesmo efeito. O modelo só julga depois que a bateria gerou o histórico.
 
 ### MPC-128, em uma tela
 
@@ -100,7 +128,11 @@ A plataforma tem quatro abas: **Cofre**, **Ocultar**, **Antifraude** e
 | Difusão / confusão | `maxpay/cipher.py` | `pytest -k difusao` |
 | Esteganografia em imagens | `maxpay/stego.py` | aba Ocultar |
 | Big Data de eventos | `maxpay/events.py`, `lake.py` | aba Antifraude |
+| Logs das operações criptográficas | `maxpay/registro.py` | aba Cofre, "Operações registradas" |
+| Tentativas de acesso e falhas de autenticação | `maxpay/registro.py`, `events.py` | `pytest -k senha_errada` |
+| Armazenamento das detecções de anomalia | `maxpay/lake.py` | `pytest -k deteccoes` |
 | IA para anomalias (5 tipos) | `maxpay/detect.py` | aba Antifraude |
+| IA julgando operações reais | `maxpay/registro.py` | aba Antifraude, "Cofre ao vivo" |
 | Ataque de força bruta | `attacks/brute_force.py` | aba Resistência |
 | Ataque diferencial | `attacks/differential.py` | aba Resistência |
 | Ataque estatístico | `attacks/statistical.py` | aba Resistência |
@@ -136,8 +168,10 @@ formal de resistência. Uma cifra só se torna confiável depois de anos de
 tentativa pública de quebra. É exatamente por isso que a camada AES-256 existe no
 sistema: o MPC-128 é o objeto de estudo, o AES-256 é o que protegeria o dinheiro.
 
-Os eventos de segurança são **sintéticos e rotulados**, é o que permite medir
-precisão e revocação do detector. Não há dados de usuários reais.
+Os eventos do histórico são **sintéticos e rotulados**, é o que permite medir
+precisão e revocação do detector. Não há dados de usuários reais. As operações
+feitas no cofre são registradas de verdade, mas sem rótulo: o sistema roda local,
+sem cadastro de usuários, e a única credencial é a senha do cofre.
 
 ---
 
@@ -145,6 +179,6 @@ precisão e revocação do detector. Não há dados de usuários reais.
 
 - `docs/RELATORIO.md`, relatório técnico completo (gerado dos resultados)
 - `docs/slides/index.html`, slides da apresentação (abra no navegador; `P` imprime em PDF)
-- `docs/GUIA-APRESENTACAO.pdf` — roteiro da apresentação, tela a tela
+- `docs/GUIA-APRESENTACAO.pdf`, roteiro da apresentação, tela a tela
 - `results/experimentos.json`, todas as medições, regeneráveis por comando
 - `DESIGN.md`, o sistema visual do dashboard

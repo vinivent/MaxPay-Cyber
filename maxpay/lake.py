@@ -7,14 +7,45 @@ apenas as janelas ja resumidas.
 
 from __future__ import annotations
 
+import re
 import shutil
+import time
 from pathlib import Path
 
 import duckdb
 import pandas as pd
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "lake"
+RAIZ = Path(__file__).resolve().parent.parent
+DADOS = RAIZ / "data"
+DATA_DIR = DADOS / "lake"
+VIVO_DIR = DADOS / "vivo"
+DETECCOES_DIR = DADOS / "deteccoes"
 JANELA_MINUTOS = 10
+MAX_PARTES_POR_DIA = 64
+ORIGEM_LOTE = "lote"
+ORIGEM_AO_VIVO = "ao_vivo"
+COLUNAS_DETECCAO = [
+    "detectado_em", "usuario", "janela", "score", "tipo_previsto", "explicacao",
+    "atributo_dominante", "z_dominante", "forca_assinatura", "eventos", "falhas",
+    "ips_distintos", "eventos_ip_novo",
+]
+
+
+def tem_dados(origem: Path | str) -> bool:
+    origem = Path(origem)
+    return origem.exists() and any(origem.rglob("*.parquet"))
+
+
+def caminho_relativo(caminho: Path | str) -> str:
+    caminho = Path(caminho)
+    try:
+        return str(caminho.relative_to(RAIZ))
+    except ValueError:
+        return caminho.name
+
+
+def _bytes_em_disco(pasta: Path) -> int:
+    return sum(a.stat().st_size for a in pasta.rglob("*.parquet"))
 
 
 def gravar(df: pd.DataFrame, destino: Path | str = DATA_DIR, limpar: bool = True) -> dict:
@@ -26,13 +57,83 @@ def gravar(df: pd.DataFrame, destino: Path | str = DATA_DIR, limpar: bool = True
     df.to_parquet(destino, partition_cols=["dia"], index=False)
     arquivos = sorted(destino.rglob("*.parquet"))
     return {
-        "caminho": str(destino),
+        "caminho": caminho_relativo(destino),
         "eventos": len(df),
         "particoes": len({a.parent for a in arquivos}),
         "arquivos": len(arquivos),
         "bytes_em_disco": sum(a.stat().st_size for a in arquivos),
         "bytes_por_evento": round(sum(a.stat().st_size for a in arquivos) / max(len(df), 1), 2),
     }
+
+
+def anexar(df: pd.DataFrame, destino: Path | str = VIVO_DIR) -> None:
+    destino = Path(destino)
+    for dia, lote in df.groupby("dia"):
+        particao = destino / f"dia={dia}"
+        particao.mkdir(parents=True, exist_ok=True)
+        lote.drop(columns="dia").to_parquet(particao / f"parte-{time.time_ns()}.parquet", index=False)
+        _compactar(particao)
+
+
+def _compactar(particao: Path) -> None:
+    partes = sorted(particao.glob("*.parquet"))
+    if len(partes) <= MAX_PARTES_POR_DIA:
+        return
+    unido = pd.concat([pd.read_parquet(a) for a in partes], ignore_index=True)
+    temporario = particao / f"compacto-{time.time_ns()}.tmp"
+    unido.to_parquet(temporario, index=False)
+    temporario.rename(temporario.with_suffix(".parquet"))
+    for a in partes:
+        a.unlink()
+
+
+def gravar_deteccoes(alertas: pd.DataFrame, origem: str, destino: Path | str = DETECCOES_DIR) -> dict:
+    pasta = Path(destino) / f"origem={origem}"
+    if origem == ORIGEM_LOTE and pasta.exists():
+        shutil.rmtree(pasta)
+    pasta.mkdir(parents=True, exist_ok=True)
+    registros = alertas.copy()
+    registros["detectado_em"] = pd.Timestamp.now().floor("s")
+    extras = [c for c in ("rotulo_real", "anomala") if c in registros.columns]
+    registros = registros[COLUNAS_DETECCAO + extras]
+    if origem == ORIGEM_LOTE:
+        registros.to_parquet(pasta / "alertas.parquet", index=False)
+    else:
+        for n in range(len(registros)):
+            linha = registros.iloc[[n]]
+            chave = f"{linha['usuario'].iloc[0]}-{linha['janela'].iloc[0]:%Y%m%dT%H%M}"
+            linha.to_parquet(pasta / (re.sub(r"[^A-Za-z0-9_.-]", "_", chave) + ".parquet"), index=False)
+    return {
+        "caminho": caminho_relativo(pasta),
+        "registros": len(registros),
+        "bytes_em_disco": _bytes_em_disco(pasta),
+    }
+
+
+def consultar_deteccoes(
+    origem: str | None = None, limite: int = 50, destino: Path | str = DETECCOES_DIR
+) -> list[dict]:
+    if not tem_dados(destino):
+        return []
+    con = duckdb.connect()
+    filtro, params = ("WHERE origem = ?", [origem]) if origem else ("", [])
+    df = con.execute(f"""
+        SELECT * FROM read_parquet('{Path(destino)}/**/*.parquet', hive_partitioning=1, union_by_name=1)
+        {filtro} ORDER BY score DESC, janela DESC LIMIT ?
+    """, params + [limite]).df()
+    df["janela"], df["detectado_em"] = df["janela"].astype(str), df["detectado_em"].astype(str)
+    return df.astype(object).where(df.notna(), None).to_dict(orient="records")
+
+
+def contar_deteccoes(destino: Path | str = DETECCOES_DIR) -> dict:
+    if not tem_dados(destino):
+        return {}
+    con = duckdb.connect()
+    linhas = con.execute(f"""
+        SELECT origem, count(*) FROM read_parquet('{Path(destino)}/**/*.parquet', hive_partitioning=1, union_by_name=1)
+        GROUP BY 1
+    """).fetchall()
+    return {origem: int(total) for origem, total in linhas}
 
 
 def conectar(origem: Path | str = DATA_DIR) -> duckdb.DuckDBPyConnection:
@@ -114,8 +215,14 @@ def janelas(con, minutos: int = JANELA_MINUTOS, min_eventos: int = 5) -> pd.Data
     isoladas nao formam um comportamento a ser julgado.
     """
     return con.execute(f"""
-        WITH habitual_ip AS (
-            SELECT usuario, ip FROM eventos GROUP BY 1, 2 HAVING count(DISTINCT dia) >= 3
+        WITH atividade AS (
+            SELECT usuario, count(DISTINCT dia) AS dias_ativos FROM eventos GROUP BY 1
+        ),
+        habitual_ip AS (
+            SELECT e.usuario, e.ip
+            FROM eventos e JOIN atividade a ON a.usuario = e.usuario
+            GROUP BY e.usuario, e.ip, a.dias_ativos
+            HAVING count(DISTINCT e.dia) >= least(3, a.dias_ativos)
         )
         SELECT e.usuario,
                time_bucket(INTERVAL '{minutos} minutes', e.ts) AS janela,

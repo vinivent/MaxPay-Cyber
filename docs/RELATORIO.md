@@ -1,6 +1,6 @@
 # MaxPay, Sistema Criptográfico e Análise de Ataques
 
-**Disciplina:** Cibersegurança Aplicada a Dados e IA: CESAR School
+**Disciplina:** Cibersegurança Aplicada a Dados e IA, CESAR School
 **Professora:** Renatta Nigro
 **Grupo:** Claudio Alves, Ian Nunes, Maria Augusta, Gabriel Lima, Gabriel Rodrigues, Vinicius Ventura
 **Data:** 17/11/2026
@@ -9,6 +9,8 @@
 > do próprio sistema (`python -m maxpay.experiments`), executada em
 > 2026-11-17 10:24:45 sobre Darwin arm64,
 > Python 3.14.6. Nenhum valor foi transcrito à mão.
+> A etapa de Big Data e IA (§6.9 e §6.10) foi refeita em 2026-11-17 14:26:44 sobre
+> Darwin arm64, Python 3.14.3. As demais medições são da execução acima.
 
 ---
 
@@ -21,7 +23,7 @@ num lago de dados de 1.999.952 eventos e usa aprendizado de
 máquina para apontar comportamento anormal.
 
 O mesmo sistema ataca a si próprio. Os três ataques exigidos pelo enunciado
-, força bruta, diferencial e estatístico, rodam contra duas versões da cifra:
+(força bruta, diferencial e estatístico) rodam contra duas versões da cifra:
 a íntegra, de 14 rodadas com difusão, e uma variante deliberadamente
 enfraquecida, de 1 rodada sem MixColumns. **A variante enfraquecida cai; a
 íntegra não cede a nenhum dos três.** É essa comparação que sustenta o veredito
@@ -31,7 +33,7 @@ da Parte 4, e não uma afirmação de que "o sistema é seguro".
 |---|---|---|---|
 | Efeito avalanche | **50,08%** | 3,10% | 50,08% |
 | Entropia da saída (bits/byte) | **7,9981** | 6,5748 | 7,9983 |
-| Texto recuperado por análise de frequência | 4,59% | **62,78%** |: |
+| Texto recuperado por análise de frequência | 4,59% | **62,78%** | não se aplica |
 | Distinguível de permutação aleatória | Não | **Sim** | Não |
 
 ---
@@ -45,7 +47,7 @@ As seis camadas pedidas no enunciado, e onde cada uma vive no código:
 | 1 | Entrada de dados | Texto, arquivos e imagens | `maxpay/api.py` |
 | 2 | Criptografia | MPC-128 próprio + AES-256-GCM | `maxpay/cipher.py`, `maxpay/baseline.py` |
 | 3 | Esteganografia | Ocultação em imagens PNG | `maxpay/stego.py` |
-| 4 | Big Data | Geração, Parquet particionado, DuckDB | `maxpay/events.py`, `maxpay/lake.py` |
+| 4 | Big Data | Registro das operações, Parquet particionado, DuckDB | `maxpay/registro.py`, `maxpay/events.py`, `maxpay/lake.py` |
 | 5 | Inteligência Artificial | Isolation Forest sobre janelas | `maxpay/detect.py` |
 | 6 | Dashboard | API + painel web | `maxpay/api.py`, `web/` |
 
@@ -154,13 +156,31 @@ texto/arquivo/imagem
              └─ HMAC-SHA256 ─ envelope autenticado
                   └─ esteganografia LSB com posições derivadas da chave
                        └─ imagem portadora
-   (cada operação emite um evento → Parquet → DuckDB → Isolation Forest → alerta)
+   (cada operação emite um evento → Parquet → DuckDB → Isolation Forest → alerta armazenado)
 ```
+
+A última linha descreve o que o código faz a cada operação real do cofre, e não
+só na bateria. Proteger, abrir, ocultar e revelar gravam um evento em
+`data/vivo/`, no mesmo formato Parquet particionado por dia do histórico, com
+origem (IP e dispositivo), resultado, latência, bytes e estado da integridade.
+Uma abertura recusada, por senha errada ou conteúdo adulterado, entra como falha
+de decifragem com a integridade violada. A cada evento, a janela de
+10 minutos em que ele cai é reagregada pela mesma consulta SQL do
+histórico e julgada pelo mesmo Isolation Forest, treinado sobre os
+1.999.952 eventos do lago. Quando a janela passa do limiar, a
+detecção é gravada em `data/deteccoes/`, e é dali que a aba Antifraude lê. Uma
+janela só é julgada a partir de 5 operações: menos que isso
+não forma um comportamento.
+
+O sistema roda local e não tem cadastro de usuários. A única credencial é a
+senha do cofre, então a falha de autenticação que existe ao vivo é a do envelope,
+verificada por HMAC. Tentativas de login em rajada aparecem no histórico
+sintético (§6.10), onde os cinco tipos de anomalia têm rótulo conhecido.
 
 O modo CTR transforma a cifra de bloco em cifra de fluxo: o bloco cifrado é o
 contador, e o texto claro é combinado por XOR com esse fluxo. Isso elimina o
 preenchimento e, sobretudo, faz blocos claros iguais produzirem saídas
-diferentes, o problema que a seção 6.6 demonstra no modo ECB.
+diferentes, o problema que a seção 6.7 demonstra no modo ECB.
 
 ---
 
@@ -184,7 +204,7 @@ diferentes, o problema que a seção 6.6 demonstra no modo ECB.
 | 14 | Detecção de anomalias | AUC, precisão e revocação | 43.985 janelas |
 
 Reproduzíveis por `python -m maxpay.experiments` e verificados por
-`pytest` (42 testes).
+`pytest` (52 testes).
 
 ---
 
@@ -399,14 +419,22 @@ implementação: é o que remove a assinatura.
 | Período | 30 dias, 800 usuários, 4.120 IPs |
 | Partições Parquet | 30 |
 | Em disco | 48,57 MB (24,29 B por evento) |
-| Ingestão | 2,37 s |
-| Consulta de resumo | 0,116 s |
-| Agregação em janelas | 0,327 s |
+| Ingestão | 2,69 s |
+| Consulta de resumo | 0,104 s |
+| Agregação em janelas | 0,274 s |
 | Taxa de falha global | 2,405% |
 | Volume financeiro simulado | R$ 295.000.802,98 |
+| Detecções armazenadas | 440 alertas em `data/deteccoes/origem=lote` (24,9 kB) |
 
 A agregação reduz 1.999.952 eventos -> 43.985 janelas. O trabalho
 pesado é feito em SQL colunar; a camada de IA recebe só o resumo.
+
+São três conjuntos lado a lado, todos em Parquet e consultados pelo mesmo
+DuckDB: `data/lake/` guarda o histórico de eventos, `data/vivo/` guarda as
+operações reais do cofre, e `data/deteccoes/` guarda cada alerta emitido pela
+IA, tanto os 440 do histórico quanto os que surgem
+ao vivo. Cada detecção carrega a conta, a janela, o risco, o tipo previsto e a
+explicação, de modo que um alerta pode ser auditado depois sem repetir o modelo.
 
 ### 6.10 Detecção de anomalias
 
@@ -505,7 +533,7 @@ produzem resultados de naturezas diferentes e não se comparam por um número
 - Chave dinâmica por mensagem (salt e nonce aleatórios) e integridade por HMAC-SHA256.
 - PBKDF2 com 120.000 iterações encarece o ataque de dicionário em cinco ordens de grandeza.
 
-**Ressalvas: e elas não são formalidade:**
+**Ressalvas, e elas não são formalidade:**
 
 - Cifra própria sem análise pública: a estrutura vem da mesma família do AES, mas S-box, matriz de difusão e permutação são escolhas nossas e nunca passaram por criptanálise independente. Em produção, use AES-256.
 - O modo ECB continua vazando estrutura mesmo com 14 rodadas: apenas o modo CTR autenticado deve ser usado.
@@ -558,7 +586,7 @@ pip install -r requirements.txt
 
 python -m maxpay.experiments     # gera results/experimentos.json
 python -m maxpay.report          # regera este relatório
-pytest -q                          # 42 testes
+pytest -q                          # 52 testes
 uvicorn maxpay.api:app --reload  # dashboard em http://127.0.0.1:8000
 ```
 
@@ -566,7 +594,7 @@ uvicorn maxpay.api:app --reload  # dashboard em http://127.0.0.1:8000
 
 | Requisito do enunciado | Onde está | Evidência |
 |---|---|---|
-| Criptografia simétrica com geração dinâmica de chaves | `maxpay/cipher.py` | §3.3 |
+| Criptografia simétrica com geração dinâmica de chaves | `maxpay/cipher.py` | §3.4 |
 | XOR, substituição, permutação, blocos | `maxpay/cipher.py` | §3.2 |
 | Difusão / confusão | `maxpay/cipher.py` | §6.1, §6.2 |
 | Esteganografia em imagens | `maxpay/stego.py` | §6.8 |
@@ -578,8 +606,11 @@ uvicorn maxpay.api:app --reload  # dashboard em http://127.0.0.1:8000
 | Efeito avalanche | `maxpay/attacks/differential.py` | §6.1 |
 | Distribuição estatística | `maxpay/metrics.py` | §6.5 |
 | Dashboard | `maxpay/api.py`, `web/` | camada 6 |
-| Logs de operações criptográficas | `maxpay/events.py` | §6.9 |
-| Falhas de autenticação | `maxpay/events.py` | §6.10 |
+| Logs das operações criptográficas | `maxpay/registro.py`, `maxpay/lake.py` | §4, §6.9 |
+| Tentativas de acesso e falhas de autenticação | `maxpay/registro.py`, `maxpay/events.py` | §4, §6.10 |
+| Armazenamento das detecções de anomalia | `maxpay/lake.py` | §6.9 |
+| Análise de padrões de comportamento | `maxpay/lake.py`, `maxpay/detect.py` | §6.10 |
+| Grandes conjuntos de dados experimentais | `maxpay/events.py`, `maxpay/lake.py` | §6.9 |
 | Os 5 tipos de anomalia | `maxpay/events.py` | §6.10 |
 | Arquitetura em 6 camadas | todo o pacote | §2 |
 | Respostas da Parte 4 | `maxpay/experiments.py` | §7 |

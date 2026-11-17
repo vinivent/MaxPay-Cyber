@@ -10,13 +10,15 @@ falham contra a cifra integra e funcionam contra a variante enfraquecida.
 from __future__ import annotations
 
 import io
+import itertools
 import os
 
 import numpy as np
+import pandas as pd
 import pytest
 from PIL import Image
 
-from maxpay import baseline, cipher, detect, events, lake, metrics, stego
+from maxpay import baseline, cipher, detect, events, lake, metrics, registro, stego
 from maxpay.attacks import brute_force, differential, statistical
 
 
@@ -277,14 +279,19 @@ def test_ecb_preserva_padrao_mesmo_integro():
 # Big Data e IA
 # --------------------------------------------------------------------------
 @pytest.fixture(scope="module")
-def janelas(tmp_path_factory):
+def lago(tmp_path_factory):
     # Volume suficiente para que janelas normais tambem passem do minimo de
     # eventos. Com uma amostra pequena so as rajadas de anomalia sobrevivem ao
     # filtro e a prevalencia sobe artificialmente para dezenas de por cento.
     df = events.gerar(600_000, n_usuarios=200, semente=5)
     destino = tmp_path_factory.mktemp("lake")
     lake.gravar(df, destino)
-    return lake.janelas(lake.conectar(destino), min_eventos=5)
+    return destino
+
+
+@pytest.fixture(scope="module")
+def janelas(lago):
+    return lake.janelas(lake.conectar(lago), min_eventos=5)
 
 
 def test_eventos_cobrem_as_cinco_anomalias():
@@ -318,3 +325,96 @@ def test_alertas_vem_explicados(janelas):
     assert alertas
     for a in alertas[:5]:
         assert a["explicacao"] and a["tipo_previsto"]
+
+
+# --------------------------------------------------------------------------
+# Registro ao vivo
+# --------------------------------------------------------------------------
+@pytest.fixture
+def instalacao(lago, tmp_path, monkeypatch):
+    monkeypatch.setattr(lake, "DATA_DIR", lago)
+    monkeypatch.setattr(lake, "VIVO_DIR", tmp_path / "vivo")
+    monkeypatch.setattr(lake, "DETECCOES_DIR", tmp_path / "deteccoes")
+    segundos = itertools.count()
+    inicio = pd.Timestamp("2026-11-17 14:02:00")
+    monkeypatch.setattr(registro, "_agora", lambda: inicio + pd.Timedelta(seconds=next(segundos)))
+    return tmp_path
+
+
+@pytest.fixture
+def cliente(instalacao):
+    from fastapi.testclient import TestClient
+
+    from maxpay.api import app
+
+    return TestClient(app)
+
+
+def test_deteccoes_do_lote_sao_armazenadas(janelas, tmp_path):
+    _, pontuadas = detect.treinar_e_pontuar(janelas)
+    emitidos = detect.alertas_emitidos(pontuadas)
+    gravacao = lake.gravar_deteccoes(emitidos, lake.ORIGEM_LOTE, tmp_path)
+    assert gravacao["registros"] == len(emitidos) == int(pontuadas["alerta"].sum()) > 0
+    assert lake.contar_deteccoes(tmp_path) == {lake.ORIGEM_LOTE: len(emitidos)}
+    mais_arriscada = lake.consultar_deteccoes(lake.ORIGEM_LOTE, 1, tmp_path)[0]
+    assert mais_arriscada["score"] == pytest.approx(emitidos["score"].max())
+    assert mais_arriscada["explicacao"] and mais_arriscada["rotulo_real"]
+
+
+def test_operacao_registrada_sobrevive_em_parquet(instalacao):
+    registro.registrar("cifragem", "MPC-128", "sucesso", 70, 41.5, ip="10.0.0.7", dispositivo="web-chrome")
+    registro.registrar("decifragem", "MPC-128", "falha", 157, 9.8, integridade_ok=False, detalhe="chave incorreta")
+    assert list((instalacao / "vivo").rglob("*.parquet")), "o evento precisa estar em disco, não só na memória"
+    ultima, primeira = registro.operacoes()
+    assert (primeira["tipo"], primeira["ip"], primeira["dispositivo"]) == ("cifragem", "10.0.0.7", "web-chrome")
+    assert (ultima["tipo"], ultima["resultado"], ultima["detalhe"]) == ("decifragem", "falha", "chave incorreta")
+    assert registro.total_de_eventos() == 2
+
+
+def test_registro_compacta_sem_perder_eventos(instalacao, monkeypatch):
+    monkeypatch.setattr(lake, "DATA_DIR", instalacao / "sem-historico")
+    monkeypatch.setattr(lake, "MAX_PARTES_POR_DIA", 8)
+    for _ in range(30):
+        registro.registrar("cifragem", "AES-256", "sucesso", 64, 30.0)
+    assert registro.total_de_eventos() == 30
+    assert len(list((instalacao / "vivo").rglob("*.parquet"))) <= 9
+
+
+def test_uso_normal_nao_gera_alerta(instalacao):
+    for _ in range(8):
+        registro.registrar("cifragem", "MPC-128", "sucesso", 90, 45.0)
+    painel = registro.painel()
+    assert painel["modelo_pronto"] and painel["janelas_julgadas"] >= 1
+    assert not any(j["alerta"] for j in painel["janelas"])
+    assert painel["deteccoes"] == []
+
+
+def test_sem_historico_o_evento_e_registrado_mas_nao_julgado(instalacao, monkeypatch):
+    monkeypatch.setattr(lake, "DATA_DIR", instalacao / "sem-historico")
+    for _ in range(6):
+        registro.registrar("decifragem", "MPC-128", "falha", 157, 10.0, integridade_ok=False)
+    painel = registro.painel()
+    assert painel["eventos"]["total"] == 6 and painel["eventos"]["falhas"] == 6
+    assert not painel["modelo_pronto"] and painel["janelas"] == []
+
+
+def test_senha_errada_em_rajada_vira_deteccao_armazenada(cliente, instalacao):
+    envelope = cliente.post("/api/cofre/cifrar", json={"texto": "PIX 250,00", "senha": "certa"}).json()["envelope_b64"]
+    for _ in range(12):
+        recusa = cliente.post("/api/cofre/decifrar", json={"envelope_b64": envelope, "senha": "errada"})
+        assert recusa.status_code == 400
+    painel = cliente.get("/api/antifraude/ao-vivo").json()
+    assert painel["eventos"]["falhas_integridade"] == 12
+    assert any(j["alerta"] for j in painel["janelas"])
+    assert painel["deteccoes"] and painel["deteccoes"][0]["tipo_previsto"] == "falhas_decifragem"
+    assert list((instalacao / "deteccoes" / f"origem={lake.ORIGEM_AO_VIVO}").glob("*.parquet"))
+    assert cliente.get("/api/status").json()["deteccoes_armazenadas"] == {lake.ORIGEM_AO_VIVO: 1}
+
+
+def test_ataque_simulado_passa_pelo_caminho_real(cliente):
+    resposta = cliente.post("/api/antifraude/simular-ataque?tentativas=12").json()
+    assert resposta["recusadas"] == 12
+    assert any(j["alerta"] for j in resposta["painel"]["janelas"])
+    operacoes = cliente.get("/api/cofre/operacoes").json()
+    assert operacoes["total"] == 12
+    assert all(o["tipo"] == "decifragem" and o["resultado"] == "falha" for o in operacoes["operacoes"])

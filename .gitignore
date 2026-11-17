@@ -2,7 +2,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-data/lake/
+data/
 .impeccable/mocks/
 .taste-skill/
 .DS_Store

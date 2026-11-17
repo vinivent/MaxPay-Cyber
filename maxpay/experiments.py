@@ -172,14 +172,14 @@ def esteganografia(tamanho: int = 384) -> dict:
 
 def big_data_e_ia(n_eventos: int, regenerar: bool = True) -> dict:
     t0 = time.perf_counter()
-    if regenerar or not (lake.DATA_DIR.exists() and any(lake.DATA_DIR.rglob("*.parquet"))):
+    if regenerar or not lake.tem_dados(lake.DATA_DIR):
         df = events.gerar(n_eventos)
-        gravacao = lake.gravar(df)
+        gravacao = lake.gravar(df, lake.DATA_DIR)
     else:
-        gravacao = {"caminho": str(lake.DATA_DIR), "eventos": None, "reaproveitado": True}
+        gravacao = {"caminho": lake.caminho_relativo(lake.DATA_DIR), "eventos": None, "reaproveitado": True}
     t_ingestao = time.perf_counter() - t0
 
-    con = lake.conectar()
+    con = lake.conectar(lake.DATA_DIR)
     t0 = time.perf_counter()
     resumo = lake.resumo(con)
     t_resumo = time.perf_counter() - t0
@@ -189,11 +189,15 @@ def big_data_e_ia(n_eventos: int, regenerar: bool = True) -> dict:
     t_janelas = time.perf_counter() - t0
 
     t0 = time.perf_counter()
-    ia = detect.analisar(janelas)
+    detector, pontuadas = detect.treinar_e_pontuar(janelas)
+    ia = detect.resumir(pontuadas, detector.contaminacao)
     t_ia = time.perf_counter() - t0
+
+    deteccoes = lake.gravar_deteccoes(detect.alertas_emitidos(pontuadas), lake.ORIGEM_LOTE, lake.DETECCOES_DIR)
 
     return {
         "ingestao": {**gravacao, "segundos": round(t_ingestao, 2)},
+        "deteccoes": deteccoes,
         "resumo": resumo,
         "desempenho_consultas": {
             "resumo_segundos": round(t_resumo, 3),
@@ -403,7 +407,26 @@ def carregar(origem: Path = ARQUIVO) -> dict | None:
     return json.loads(origem.read_text(encoding="utf-8"))
 
 
+def refazer_bigdata() -> dict:
+    res = carregar()
+    if res is None:
+        raise SystemExit("sem resultados anteriores: rode a bateria completa primeiro")
+    res["bigdata"] = big_data_e_ia(300_000 if res["meta"]["modo"] == "rapido" else 2_000_000)
+    res["veredito"] = _veredito(res)
+    res["meta"]["bigdata_refeito"] = {
+        "em": datetime.now().isoformat(timespec="seconds"),
+        "python": sys.version.split()[0],
+        "plataforma": f"{platform.system()} {platform.machine()}",
+    }
+    return res
+
+
 if __name__ == "__main__":
+    if "--bigdata" in sys.argv:
+        print("Refazendo apenas a etapa de Big Data e IA...")
+        caminho = salvar(refazer_bigdata())
+        print(f"OK -> {caminho} ({caminho.stat().st_size/1e6:.2f} MB)")
+        sys.exit(0)
     rapido = "--rapido" in sys.argv
     print(f"Executando bateria {'rapida' if rapido else 'completa'}...")
     resultado = run_all(rapido)

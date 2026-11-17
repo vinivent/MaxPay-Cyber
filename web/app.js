@@ -72,6 +72,7 @@ function irPara(pagina) {
   history.replaceState(null, '', `#${pagina}`);
   window.scrollTo({ top: 0 });
   desenhar(pagina);
+  if (pagina === 'antifraude') atualizarVivo();
 }
 
 $$('.nav-item').forEach((b) => b.addEventListener('click', () => irPara(b.dataset.page)));
@@ -166,6 +167,71 @@ async function desenharAntifraude() {
   ].map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join('');
 }
 
+function mostrarVivo(p) {
+  const arm = p.deteccoes_armazenadas ?? {};
+  const noLote = arm.lote ?? 0;
+  const aoVivo = arm.ao_vivo ?? 0;
+  medidas($('#vivo-medidas'), [
+    { label: 'Operações registradas', valor: ni(p.eventos.total), nota: `${ni(p.eventos.falhas)} falharam` },
+    { label: 'Janelas julgadas', valor: ni(p.janelas_julgadas),
+      nota: `a partir de ${p.min_eventos_janela} operações em ${p.janela_minutos} minutos` },
+    { label: 'Alertas ao vivo', valor: ni(aoVivo),
+      nota: p.limiar === null ? 'modelo indisponível' : `risco acima de ${nf(p.limiar, 3)}` },
+    { label: 'Detecções armazenadas', valor: ni(noLote + aoVivo), nota: `${ni(noLote)} vindas do histórico` },
+  ]);
+  $('#alertas-meta').textContent = noLote
+    ? `maior risco primeiro, ${ni(noLote)} armazenados no lago`
+    : 'maior risco primeiro';
+
+  const nota = $('#vivo-nota');
+  if (!p.modelo_pronto) {
+    nota.innerHTML = `<div class="note note-warn"><svg><use href="#ic-alert"/></svg><div>
+      <b>Modelo indisponível.</b> As operações continuam sendo registradas, mas só são julgadas depois que a
+      bateria gerar o histórico de eventos. Use <b>Executar bateria</b>, no topo.</div></div>`;
+  } else if (!p.janelas.length) {
+    nota.innerHTML = `<div class="note"><svg><use href="#ic-info"/></svg><div>
+      Nenhuma janela formada ainda. O modelo julga a partir de ${p.min_eventos_janela} operações em
+      ${p.janela_minutos} minutos: proteja e abra alguns envelopes no Cofre, ou simule um ataque.</div></div>`;
+  } else {
+    nota.innerHTML = '';
+  }
+
+  const tab = $('#tab-vivo');
+  tab.hidden = !p.janelas.length;
+  if (!p.janelas.length) return;
+  tabela(tab, [
+    { titulo: 'Janela', celula: (l) => `<span class="num">${esc(l.janela.slice(5, 16))}</span>` },
+    { titulo: 'Operações', n: true, celula: (l) => ni(l.eventos) },
+    { titulo: 'Falhas', n: true, celula: (l) => ni(l.falhas) },
+    { titulo: 'Risco', n: true, celula: (l) => nf(l.score, 3) },
+    { titulo: 'Estado', celula: (l) => (l.alerta ? tag('alerta', 'tag-crit') : tag('normal', 'tag-ok')) },
+    { titulo: 'Suspeita', celula: (l) => (l.alerta ? esc(rotulo(l.tipo_previsto)) : '<span class="muted">nenhuma</span>') },
+    { titulo: 'Por quê', celula: (l) => (l.alerta ? `<span class="meta">${esc(l.explicacao)}</span>` : '') },
+  ], p.janelas);
+}
+
+async function atualizarVivo() {
+  const erro = $('#vivo-erro');
+  erro.textContent = '';
+  try { mostrarVivo(await api('/api/antifraude/ao-vivo')); }
+  catch (e) { erro.textContent = e.message; }
+}
+
+$('#btn-vivo-atualizar').addEventListener('click', atualizarVivo);
+
+$('#btn-simular').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget;
+  const erro = $('#vivo-erro');
+  erro.textContent = '';
+  btn.disabled = true;
+  try {
+    const d = await api('/api/antifraude/simular-ataque?tentativas=12', { method: 'POST' });
+    mostrarVivo(d.painel);
+    atualizarLog();
+  } catch (e) { erro.textContent = e.message; }
+  finally { btn.disabled = false; }
+});
+
 /* ---------------------------------------------------------- resistencia */
 async function desenharResistencia() {
   const alvo = $('#ecb-imagens');
@@ -233,7 +299,7 @@ $('#btn-df').addEventListener('click', (ev) =>
       el.innerHTML = `<div class="measures" style="margin-bottom:16px">
           <div><span class="label">Bits alterados</span><span class="num-lg">${pct(d.media_pct)}</span><div class="meta">ideal 50,00%</div></div>
           <div><span class="label">Desvio padrão</span><span class="num-lg">${nf(d.desvio_padrao, 3)}</span><div class="meta">binomial(128; 0,5) = 5,657</div></div>
-          <div><span class="label">Faixa</span><span class="num-lg">${d.minimo}–${d.maximo}</span><div class="meta">de 128 bits</div></div>
+          <div><span class="label">Faixa</span><span class="num-lg">${d.minimo} a ${d.maximo}</span><div class="meta">de 128 bits</div></div>
           <div><span class="label">Veredito</span><span class="num-lg">${ok ? 'Resistiu' : 'Falhou'}</span>
             <div class="meta">${ok ? 'avalanche adequada' : 'difusão insuficiente'}</div></div>
         </div><div id="df-chart"></div>`;

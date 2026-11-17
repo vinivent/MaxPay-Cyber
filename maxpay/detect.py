@@ -72,6 +72,10 @@ class DetectorAnomalias:
         self.media_: pd.Series | None = None
         self.desvio_: pd.Series | None = None
 
+    @property
+    def limiar(self) -> float:
+        return float(-self.modelo.offset_)
+
     def treinar(self, janelas: pd.DataFrame) -> "DetectorAnomalias":
         df = montar_atributos(janelas)
         X = df[ATRIBUTOS]
@@ -178,19 +182,29 @@ def avaliar(pontuadas: pd.DataFrame) -> dict:
     }
 
 
+COLUNAS_ALERTA = ["usuario", "janela", "score", "tipo_previsto", "explicacao", "atributo_dominante",
+                  "z_dominante", "forca_assinatura", "eventos", "falhas", "ips_distintos",
+                  "eventos_ip_novo", "rotulo_real", "anomala"]
+
+
 def principais_alertas(pontuadas: pd.DataFrame, limite: int = 25) -> list[dict]:
-    cols = ["usuario", "janela", "score", "tipo_previsto", "explicacao", "atributo_dominante",
-            "z_dominante", "forca_assinatura", "eventos", "falhas", "ips_distintos",
-            "eventos_ip_novo", "rotulo_real", "anomala"]
-    top = pontuadas.nlargest(limite, "score")[cols].copy()
+    top = pontuadas.nlargest(limite, "score")[COLUNAS_ALERTA].copy()
     top["janela"] = top["janela"].astype(str)
     top["score"] = top["score"].round(4)
     return top.to_dict(orient="records")
 
 
-def analisar(janelas: pd.DataFrame, contaminacao: float = 0.01) -> dict:
+def alertas_emitidos(pontuadas: pd.DataFrame) -> pd.DataFrame:
+    colunas = [c for c in COLUNAS_ALERTA if c in pontuadas.columns]
+    return pontuadas.loc[pontuadas["alerta"], colunas].sort_values("score", ascending=False, ignore_index=True)
+
+
+def treinar_e_pontuar(janelas: pd.DataFrame, contaminacao: float = 0.01) -> tuple[DetectorAnomalias, pd.DataFrame]:
     det = DetectorAnomalias(contaminacao).treinar(janelas)
-    pontuadas = det.pontuar(janelas)
+    return det, det.pontuar(janelas)
+
+
+def resumir(pontuadas: pd.DataFrame, contaminacao: float) -> dict:
     contagem, bordas = np.histogram(pontuadas["score"], bins=40)
     return {
         "contaminacao": contaminacao,
@@ -202,3 +216,8 @@ def analisar(janelas: pd.DataFrame, contaminacao: float = 0.01) -> dict:
             "bordas": [round(float(b), 4) for b in bordas],
         },
     }
+
+
+def analisar(janelas: pd.DataFrame, contaminacao: float = 0.01) -> dict:
+    _, pontuadas = treinar_e_pontuar(janelas, contaminacao)
+    return resumir(pontuadas, contaminacao)

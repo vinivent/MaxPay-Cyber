@@ -13,19 +13,18 @@ from __future__ import annotations
 import base64
 import binascii
 import io
+import secrets
 import threading
 import time
-from collections import deque
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from maxpay import baseline, cipher, experiments, lake, report, slides, stego
+from maxpay import baseline, cipher, experiments, lake, registro, report, slides, stego
 from maxpay.attacks import brute_force, differential, statistical
 from maxpay.metrics import shannon_entropy
 
@@ -48,7 +47,6 @@ async def sem_cache_no_front(request, call_next):
     return resposta
 
 _estado: dict = {"resultados": None, "mtime": None, "executando": False, "erro": None}
-_operacoes: deque = deque(maxlen=200)
 _trava = threading.Lock()
 
 
@@ -84,14 +82,16 @@ def _b64_para_bytes(dado: str, rotulo: str) -> bytes:
     return bruto
 
 
-def _registrar(tipo: str, algoritmo: str, resultado: str, bytes_: int, ms: float, detalhe: str = "") -> dict:
-    ev = {
-        "ts": datetime.now().isoformat(timespec="seconds"),
-        "tipo": tipo, "algoritmo": algoritmo, "resultado": resultado,
-        "bytes": bytes_, "latencia_ms": round(ms, 2), "detalhe": detalhe,
-    }
-    _operacoes.appendleft(ev)
-    return ev
+def _registrar(
+    pedido: Request, tipo: str, algoritmo: str, resultado: str, bytes_: int, ms: float,
+    detalhe: str = "", integridade_ok: bool = True,
+) -> dict:
+    return registro.registrar(
+        tipo, algoritmo, resultado, bytes_, ms,
+        ip=pedido.client.host if pedido.client else "desconhecido",
+        dispositivo=registro.dispositivo(pedido.headers.get("user-agent")),
+        integridade_ok=integridade_ok, detalhe=detalhe,
+    )
 
 
 def _histograma(dados: bytes) -> list[int]:
@@ -102,7 +102,7 @@ def _histograma(dados: bytes) -> list[int]:
 # Cofre
 # --------------------------------------------------------------------------
 @app.post("/api/cofre/cifrar")
-def cifrar(p: PedidoCifrar) -> dict:
+def cifrar(p: PedidoCifrar, request: Request) -> dict:
     if p.texto is None and p.conteudo_b64 is None:
         raise HTTPException(400, "informe texto ou conteudo_b64")
     claro = p.texto.encode() if p.texto is not None else _b64_para_bytes(p.conteudo_b64, "conteudo")
@@ -121,7 +121,7 @@ def cifrar(p: PedidoCifrar) -> dict:
             meta = cipher.describe(envelope)
             corpo = envelope[cipher.HEADER.size : -cipher.TAG_LEN]
     except ValueError as exc:
-        _registrar("cifragem", p.algoritmo, "falha", len(claro), 0, str(exc))
+        _registrar(request, "cifragem", p.algoritmo, "falha", len(claro), 0, str(exc))
         raise HTTPException(400, str(exc)) from exc
     ms = (time.perf_counter() - t0) * 1000
 
@@ -147,6 +147,7 @@ def cifrar(p: PedidoCifrar) -> dict:
         try:
             marcada = stego.embed(portadora, envelope, p.senha)
         except (ValueError, OSError) as exc:
+            _registrar(request, "esteganografia", p.algoritmo, "falha", len(envelope), ms, str(exc))
             raise HTTPException(400, str(exc)) from exc
         resposta["esteganografia"] = {
             "imagem_b64": base64.b64encode(marcada).decode(),
@@ -155,14 +156,14 @@ def cifrar(p: PedidoCifrar) -> dict:
             "qualidade": stego.metrics(portadora, marcada),
             "esteganalise": stego.chi_square_attack(marcada),
         }
-        _registrar("esteganografia", p.algoritmo, "sucesso", len(envelope), ms, "payload oculto em imagem")
+        _registrar(request, "esteganografia", p.algoritmo, "sucesso", len(envelope), ms, "payload oculto em imagem")
 
-    _registrar("cifragem", p.algoritmo, "sucesso", len(claro), ms, f"{meta['modo']} / {meta['rodadas']} rodadas")
+    _registrar(request, "cifragem", p.algoritmo, "sucesso", len(claro), ms, f"{meta['modo']} / {meta['rodadas']} rodadas")
     return resposta
 
 
 @app.post("/api/cofre/decifrar")
-def decifrar(p: PedidoDecifrar) -> dict:
+def decifrar(p: PedidoDecifrar, request: Request) -> dict:
     t0 = time.perf_counter()
     origem = "envelope"
     if p.imagem_b64:
@@ -170,7 +171,8 @@ def decifrar(p: PedidoDecifrar) -> dict:
         try:
             envelope = stego.extract(_b64_para_bytes(p.imagem_b64, "imagem"), p.senha)
         except (ValueError, OSError) as exc:
-            _registrar("esteganografia", "-", "falha", 0, 0, str(exc))
+            ms = (time.perf_counter() - t0) * 1000
+            _registrar(request, "esteganografia", "-", "falha", 0, ms, str(exc), integridade_ok=False)
             raise HTTPException(400, str(exc)) from exc
     elif p.envelope_b64:
         envelope = _b64_para_bytes(p.envelope_b64, "envelope")
@@ -184,11 +186,12 @@ def decifrar(p: PedidoDecifrar) -> dict:
         meta = (baseline if eh_aes else cipher).describe(envelope)
     except (ValueError, Exception) as exc:
         ms = (time.perf_counter() - t0) * 1000
-        _registrar("decifragem", algoritmo, "falha", len(envelope), ms, str(exc))
+        _registrar(request, "decifragem", algoritmo, "falha", len(envelope), ms, str(exc),
+                   integridade_ok="integridade" not in str(exc))
         raise HTTPException(400, str(exc)) from exc
 
     ms = (time.perf_counter() - t0) * 1000
-    _registrar("decifragem", algoritmo, "sucesso", len(claro), ms, f"origem: {origem}")
+    _registrar(request, "decifragem", algoritmo, "sucesso", len(claro), ms, f"origem: {origem}")
     try:
         texto = claro.decode("utf-8")
     except UnicodeDecodeError:
@@ -221,6 +224,7 @@ def estego_portadora(tamanho: int = Query(360, ge=64, le=1024)) -> dict:
 
 @app.get("/api/estego/exemplo")
 def estego_exemplo(
+    request: Request,
     senha: str = Query("cofre-maxpay-2026", min_length=1),
     tamanho: int = Query(360, ge=64, le=1024),
 ) -> dict:
@@ -236,7 +240,7 @@ def estego_exemplo(
     mensagem = "TX884120 TED R$ 9.350,00 CT7781-4 Bradesco 17/11/2026 APROVADO"
     envelope = cipher.encrypt(mensagem.encode(), senha)
     marcada = stego.embed(portadora, envelope, senha)
-    _registrar("esteganografia", "MPC-128", "sucesso", len(envelope), 0, "exemplo para demonstração")
+    _registrar(request, "esteganografia", "MPC-128", "sucesso", len(envelope), 0, "exemplo para demonstração")
     return {
         "imagem_b64": base64.b64encode(marcada).decode(),
         "portadora_b64": base64.b64encode(portadora).decode(),
@@ -248,8 +252,47 @@ def estego_exemplo(
 
 
 @app.get("/api/cofre/operacoes")
-def operacoes() -> dict:
-    return {"operacoes": list(_operacoes), "total": len(_operacoes)}
+def operacoes(limite: int = Query(200, ge=1, le=2000)) -> dict:
+    return {"operacoes": registro.operacoes(limite), "total": registro.total_de_eventos()}
+
+
+# --------------------------------------------------------------------------
+# Antifraude ao vivo
+# --------------------------------------------------------------------------
+@app.get("/api/antifraude/ao-vivo")
+def antifraude_ao_vivo() -> dict:
+    return registro.painel()
+
+
+@app.get("/api/antifraude/deteccoes")
+def antifraude_deteccoes(
+    origem: str | None = Query(None, pattern=f"^({lake.ORIGEM_LOTE}|{lake.ORIGEM_AO_VIVO})$"),
+    limite: int = Query(50, ge=1, le=1000),
+) -> dict:
+    return {
+        "deteccoes": lake.consultar_deteccoes(origem, limite, lake.DETECCOES_DIR),
+        "armazenadas": lake.contar_deteccoes(lake.DETECCOES_DIR),
+    }
+
+
+@app.post("/api/antifraude/simular-ataque")
+def antifraude_simular_ataque(request: Request, tentativas: int = Query(12, ge=5, le=60)) -> dict:
+    envelope = cipher.encrypt(statistical.sample_ledger(1), secrets.token_urlsafe(24))
+    recusadas = 0
+    for n in range(tentativas):
+        candidata = brute_force.SENHAS_COMUNS[n % len(brute_force.SENHAS_COMUNS)]
+        t0 = time.perf_counter()
+        try:
+            cipher.decrypt(envelope, candidata)
+            aberto = True
+        except ValueError:
+            aberto = False
+            recusadas += 1
+        _registrar(
+            request, "decifragem", "MPC-128", "sucesso" if aberto else "falha", len(envelope),
+            (time.perf_counter() - t0) * 1000, "ataque simulado: senha de dicionário", integridade_ok=aberto,
+        )
+    return {"tentativas": tentativas, "recusadas": recusadas, "painel": registro.painel()}
 
 
 # --------------------------------------------------------------------------
@@ -344,7 +387,9 @@ def status() -> dict:
         "tem_resultados": r is not None,
         "gerado_em": (r or {}).get("meta", {}).get("gerado_em"),
         "modo": (r or {}).get("meta", {}).get("modo"),
-        "lake_pronto": lake.DATA_DIR.exists() and any(lake.DATA_DIR.rglob("*.parquet")),
+        "lake_pronto": lake.tem_dados(lake.DATA_DIR),
+        "eventos_ao_vivo": registro.total_de_eventos(),
+        "deteccoes_armazenadas": lake.contar_deteccoes(lake.DETECCOES_DIR),
     }
 
 
