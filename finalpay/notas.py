@@ -3,79 +3,48 @@
 Texto para ser LIDO EM VOZ ALTA durante a defesa. A tecla `N` mostra e esconde
 o painel na apresentacao; ele tambem sai na impressao quando esta visivel.
 
-Cada nota foi escrita contra o texto que de fato aparece na tela e depois
-revisada por um passo adversarial, que procurou numero inventado, afirmacao sem
-lastro na projecao e exagero de resultado.
+Registro deliberadamente seco: a nota comeca pelo fato, nao por comentario
+sobre a propria apresentacao. Todo numero citado existe no texto da tela.
 
 Chave = id da tela em `slides.py`.
 """
 
 NOTAS: dict[str, str] = {
-    "capa": """Boa tarde, professora. O FinalPay é o cofre de um banco digital fictício, mas o problema dele é real: toda transação precisa ser cifrada, escondida e vigiada. Nós decidimos não parar na construção. Depois de montar o cofre, nós o atacamos por dentro, com ataques clássicos da criptoanálise.
+    "capa": """O FinalPay é o cofre de transações de um banco digital fictício. A cifra é nossa, escrita do zero. O resultado fica escondido dentro de uma imagem, e o evento vai para um lago de dados vigiado por um modelo. Os ataques rodam contra a cifra íntegra e contra uma variante enfraquecida de propósito.""",
 
-É isso que queremos que a senhora julgue hoje: não se o sistema funciona, mas o quanto ele resiste. O veredito vem das medições, não da nossa opinião. Vamos começar pelas camadas que uma transação atravessa antes de chegar ao painel.""",
+    "ato1": """As seis camadas estão na ordem em que uma transação as percorre: alguém digita e o dado é cifrado. Depois pode ser escondido numa imagem, é guardado e lido em massa, é analisado em busca de fraude e aparece no painel. Um ataque em cada ponto só alcança o que a camada anterior entregou.""",
 
-    "ato1": """Essa arquitetura não é enfeite. As seis camadas são as que o enunciado pede, e nós as pusemos na ordem que uma transação percorre: alguém digita, o dado é cifrado, pode ser escondido numa imagem, é guardado e lido em massa, é analisado em busca de fraude e aparece no painel de quem vigia. Essa ordem nos deixa apontar onde um ataque entraria e o que ele veria. Todas vivem no mesmo repositório, nenhuma ficou de fora. Peça por peça: o que construímos, e onde entram os ataques.""",
+    "construido": """A versão enfraquecida é a mesma cifra, com a difusão desligada e as rodadas reduzidas. Ela serve de grupo de controle. Se um ataque derruba a fraca e a íntegra aguenta, a resistência vem do desenho, não de um teste mal feito. Os três ataques cifram ali mesmo, com chave sorteada na hora.""",
 
-    "construido": """A ideia central é que o ataque não é um projeto separado. A defesa e os três ataques moram no mesmo repositório, porque só assim conseguimos medir, em vez de apenas afirmar. Sem isso, nós estaríamos só dizendo que o sistema é seguro.
+    "algoritmo": """O XOR mistura a subchave, a S-box quebra a linearidade, ShiftRows e MixColumns espalham a diferença. Uniformidade diferencial 4 limita cada byte ativo a 2 elevado a menos 6. A difusão obriga vários bytes ativos por rodada, e 14 rodadas deixam margem contra ataque diferencial. Pontos fixos 0: nenhum byte sai igual da S-box.""",
 
-E a cifra roda nas duas versões porque uma delas serve de controle. Se a enfraquecida cede e a íntegra não, a segurança está no desenho do algoritmo, e não na nossa palavra. Vamos olhar essa cifra por dentro, a FPC-128.""",
+    "projeto": """A afim com 0x0D, a permutação, a difusão e o escalonamento HKDF/HMAC-SHA256 diferem do AES, e a S-box muda nas 256 posições. Cada escolha passou por verificação: a S-box é bijetiva, com zero ponto fixo e uniformidade 4, e a difusão é MDS por todos os menores.""",
 
-    "algoritmo": """Essas quatro operações não estão ali por enfeite. Cada uma tem um papel: o XOR entra com a chave, a substituição quebra a linearidade, a permutação e a difusão espalham a diferença de um bit pelo bloco. Os números medem se deu certo: zero pontos fixos na S-box e uniformidade diferencial 4 deixam o melhor par diferencial em 2 elevado a menos 6.
+    "chave": """As 120.000 iterações do PBKDF2 encarecem o chute de senha, caso alguém leve os envelopes guardados. Em troca, senha perdida é cofre perdido: não existe cópia da chave em disco. Os 50,06% saíram do nosso teste de espalhamento, e metade é o alvo: passar disso não seria melhor.""",
 
-Só que essa estrutura não é invenção nossa: ela vem do AES. No próximo slide mostramos, componente por componente, o que é escolha nossa.""",
+    "estego": """O qui-quadrado de Westfeld procura o padrão regular que o LSB sequencial deixa na imagem. Com as posições derivadas da chave, esse padrão não aparece, e o teste não acusa nada. Foi o único detector que rodamos. Contra outros ataques, não temos medida.""",
 
-    "projeto": """Sejamos honestos: a estrutura não é nossa, é a família do AES. Escolhemos assim de propósito, porque é a rede SPN com S-box de inverso multiplicativo que garante as boas propriedades. O que é nosso são os três componentes concretos, e nenhum deles entrou por gosto: cada um passou na verificação matemática.
+    "antifraude": """ROC AUC 0,9965 significa que uma janela de ataque quase sempre aparece acima de uma janela normal no ranking. Surto de eventos tem revocação 4,3% com posto de risco 1,69%: metade dessas 23 janelas está ainda mais perto do topo das 43.985, e mesmo assim fora do orçamento de alertas.""",
 
-Diferir do AES nas 256 posições da S-box é só diferença, não é prova de que a nossa é melhor. O que não se repete é a chave: as subchaves saem do HKDF, novas a cada mensagem.""",
+    "ato2": """A versão enfraquecida é o grupo de controle. Se um ataque derruba a fraca e não a íntegra, a resistência vem do desenho da cifra, e não de um defeito do teste. A força bruta contra a chave é exceção: não quebra nenhuma das duas, porque o tamanho da chave não depende das rodadas.""",
 
-    "chave": """Essa é a parte que mais nos deu trabalho. Queríamos um cofre que não guardasse chave em disco, então tudo nasce da senha, na hora. As 120.000 iterações do PBKDF2 existem para encarecer o chute de senha de quem levar o banco de dados embora. E os 50,06% são o teste de espalhamento que fizemos: 1 bit trocado na chave e a saída já não lembra a anterior.
+    "avalanche": """A FPC-128 íntegra vira 50,11% dos bits, contra 50,01% do AES-256. O MixColumns é quem espalha o bit: sem ele, 14 rodadas param em 3,13% e uma rodada dá 3,09%. A difusão fecha na rodada 2, e o resto das 14 é margem. O desvio medido, 5,698, casa com o 5,657 esperado.""",
 
-Chave boa não resolve onde o envelope fica guardado. É aí que escondemos o envelope dentro de uma imagem.""",
+    "padroes": """Em CTR o p do qui-quadrado é 0,6823. O AES-256-GCM deu 0,4132 e o /dev/urandom de controle deu 0,3133; nenhum dos três rejeita uniformidade. O teste mede distribuição, não resistência a ataque. Em ECB bloco igual na entrada vira bloco igual na saída, e 14 rodadas ainda deixam 36,10% de blocos repetidos.""",
 
-    "estego": """O ponto aqui não é esconder melhor, é esconder sem deixar assinatura estatística. O LSB sequencial clássico acende 3 de 20 segmentos no qui-quadrado: ele denuncia a presença da mensagem antes de qualquer tentativa de quebra. Na versão chaveada medimos 0, o mesmo resultado da imagem limpa.
+    "bruta": """Um espaço de 2 elevado a 256 é igual em qualquer cifra de 256 bits, então esse número não avalia o nosso desenho. O PBKDF2 limita o atacante a 114,6 tentativas por segundo. Com isso a defesa real é a senha: banco123 cai em 0,06 s, uma de 12 caracteres resiste.""",
 
-Mas o qui-quadrado é um detector só, e não testamos todos. A portadora comporta 55.286 bytes, então isso não é canal para volume grande. Volume grande é o próximo problema, e ele aparece do lado dos dados.""",
+    "diferencial": """Repetição máxima 1 significa que nenhuma diferença de saída apareceu duas vezes. Sem difusão, a diferença mais frequente aparece 1.536 vezes, e esse viés já separa a cifra de uma função aleatória. Com uniformidade diferencial 4, as 14 rodadas levam a probabilidade para fora do alcance prático. Isso cobre apenas o ataque diferencial.""",
 
-    "antifraude": """O modelo aprendeu sem rótulos, e mesmo assim separa quase tudo: ROC AUC 0,9965 e um ganho de 126,2 vezes sobre o acaso.
+    "estatistico": """A contagem de bytes dispensa chave: trabalha só sobre o texto cifrado. Sem difusão, cada posição do bloco guarda um alfabeto próprio, e caem 38 das 80 posições, 60,15% do texto. Com difusão a recuperação desce para 4,29%, abaixo da linha de base de 31,26%. Sobra o formato, não o valor nem a conta.""",
 
-O surto de eventos merece explicação. A revocação é de 4,3%, o pior número da tabela, mas o posto de risco conta outra história: o modelo o coloca no 1,69% mais arriscado de 43.985 janelas. Ele não passa despercebido, ele perde a disputa pelo orçamento de alertas para as anomalias que geram falha. É por isso que medimos as duas coisas. Detectar bem não prova que a cifra resiste, então fomos atacar a nossa.""",
+    "ato3": """Quem atacou a cifra foi a nossa própria equipe. Ninguém de fora tentou quebrá-la. Ela resistiu aos ataques que nós conseguimos imaginar, e isso não é o mesmo que resistir aos ataques que existem. Fora dessa lista, não temos resultado nenhum para mostrar.""",
 
-    "ato2": """Não confiamos numa cifra só porque ela é nossa. Então atacamos a nossa. A versão enfraquecida é o nosso grupo de controle. Quando um ataque derruba a fraca e não a íntegra, a resistência é da cifra, não um defeito do teste. A força bruta é a exceção: não quebra nenhuma das duas, porque o tamanho da chave não depende das rodadas.
+    "perguntas": """A análise de frequência devolveu 60,15% do texto claro sem precisar de chave nenhuma, e só contra a variante sem difusão. Na cifra íntegra, nenhum ataque teve vantagem. Os 1,716 vezes 10 elevado a 58 anos de força bruta protegem a chave, não as escolhas de projeto.""",
 
-Esses ataques dizem se a cifra aguenta, não por que ela aguenta. Para isso medimos como um único bit de entrada se espalha pela saída.""",
+    "conclusao": """Sem MixColumns, nenhuma rodada extra devolve a difusão que falta. No ECB a cifra estava íntegra, e o que faltou foi o modo de operação. O limite de 1% de alertas foi nossa escolha; com ele, o surto fica no 1,69% mais arriscado e passa sem alerta.""",
 
-    "avalanche": """O contraste é o ponto. Sem difusão, a cifra não melhora com mais rodadas: 14 rodadas dão 3,13%, e uma rodada só dá 3,09%. Repetir operação ruim não conserta nada. Quem espalha o bit é o MixColumns, e a difusão fecha na rodada 2; o resto é margem. Com difusão, medimos 50,11%, colado nos 50,01% do AES-256. O desvio padrão de 5,698 contra 5,657 mostra que a dispersão também bate, não só a média. Mas um bit bem espalhado não garante saída sem padrão. É isso que medimos agora.""",
+    "limites": """A S-box, a matriz de difusão e a permutação nunca foram avaliadas por gente de fora. Os três ataques foram os nossos, e teste de quem projeta não vale como criptanálise. O tempo de execução varia, o que entrega informação sobre a chave. No produto, quem protege o dado é o AES-256.""",
 
-    "padroes": """Nós colocamos a cifra contra o AES e contra o /dev/urandom do sistema. No modo CTR, a saída da FPC-128 passa nos mesmos testes que esse ruído, então não achamos atalho estatístico.
-
-No modo ECB a história muda, e nós assumimos: 36,10% dos blocos se repetem com as mesmas 14 rodadas. O motivo é o modo, não a cifra: bloco igual na entrada vira bloco igual na saída, e rodada nenhuma conserta isso. Em CTR esse vazamento não aparece, e sobra tentar todas as chaves. Nós medimos o custo.""",
-
-    "bruta": """Esse número astronômico prova menos do que parece. Ele mede o tamanho do espaço de chaves, não a qualidade do nosso desenho interno. Uma cifra fraca com a mesma chave daria a mesma conta, então não cantamos vitória aqui.
-
-O resultado útil é o de baixo. Com 114,6 tentativas por segundo, banco123 caiu em 0,06 segundos. O atacante não vai lutar com a matemática, vai atrás do usuário. Falta então olhar a estrutura interna da cifra, e é isso que atacamos agora.""",
-
-    "diferencial": """Esse ataque não tenta adivinhar a chave. Nós procuramos uma diferença de saída que se repita, porque repetição é estrutura vazando. Para mostrar que o método funciona, atacamos a nossa própria versão enfraquecida, de 1 rodada e sem difusão, e ela ficou distinguível. A versão íntegra não ficou.
-
-O porquê está na tela: a uniformidade diferencial 4 limita cada rodada, e 14 rodadas empilham esse limite até não sobrar nada explorável. Isso não é prova de segurança: é um ataque conhecido que não passou.""",
-
-    "estatistico": """Esse é o ataque que mais nos incomodou, porque não usamos chave nenhuma: só contamos bytes. Na variante sem difusão, como o registro bancário tem largura fixa, cada posição do bloco virou uma substituição simples. E com isso recuperamos 60,15% do texto e abrimos 38 de 80 posições.
-
-Com difusão, cai para 4,29%, abaixo da linha de base de 31,26%. E olhem o texto recuperado: ele sai sujo. A frequência entrega o formato do registro, não a transação inteira. É com essa ressalva que fechamos o veredito.""",
-
-    "ato3": """Até aqui nós mostramos medições. Agora vem a parte difícil: decidir o que elas provam. E tem um limite que precisamos assumir. A cifra é nossa, e os ataques que rodamos contra ela também. Ninguém de fora tentou quebrá-la ainda. Então ela resistiu ao que nós sabemos tentar, e isso não é o mesmo que ser segura. Agora vamos responder às perguntas do enunciado, cada uma com o número que sustenta a resposta, e depois mostrar onde esse veredito deixa de valer.""",
-
-    "perguntas": """Respondemos as quatro com número, não com opinião. As duas primeiras são boas notícias: 50,11% de bits virados contra os 50% ideais, e uma entropia quase no teto.
-
-A terceira é a que incomoda. O ataque mais eficaz não quebrou a chave: ele explorou a falta de difusão de uma variante e recuperou 60,15% do texto. Então o sim da última linha é condicional: 1,716 vezes 10 elevado a 58 anos protege a chave, não protege um projeto malfeito. É dessa diferença que tiramos as lições.""",
-
-    "conclusao": """Nós entramos achando que segurança era número de rodadas. Os dados disseram outra coisa. Sem difusão, a frequência devolve 60,15% do texto, e rodada extra nenhuma conserta isso. Com a cifra intacta, o ECB preservou 36,10% dos blocos repetidos: bloco igual entra, bloco igual sai. Em ambos, o erro é de projeto, não de força.
-
-Sobre a anomalia que escapou, nós não vamos maquiar: o orçamento de 1% foi escolha nossa, e ela custou essa detecção. Passar nos ataques que fizemos não é o mesmo que estar seguro.""",
-
-    "limites": """Esse slide é o que mais nos custou escrever. Passar nos três ataques que nós mesmos montamos não prova que o FPC-128 é seguro: nós escolhemos os ataques, então testamos só o que imaginamos. Prova que o projeto está coerente. Quem valida uma cifra é a comunidade, ao longo de anos, tentando quebrar. Por isso o AES-256 fica na camada que protegeria dinheiro de verdade. As ressalvas são reais: em ECB a estrutura ainda vaza. Preferimos assumir isso a maquiar o resultado. Queremos ouvir vocês.""",
-
-    "obrigado": """Fechamos onde começamos: o FinalPay foi construído para ser atacado pelo próprio grupo. O que levamos daqui não é a cifra, é o método. Medir, tentar quebrar, e dizer com clareza o que o resultado não prova.
-
-O trabalho foi dividido entre os nomes que estão na tela, do cofre à detecção de anomalias, e cada um responde pela parte que fez. Estamos aqui para as perguntas, inclusive as que apontam o que ainda está fraco. São essas que fazem o projeto andar.""",
+    "obrigado": """O FinalPay cifra a transação, esconde o envelope numa imagem e detecta anomalias. Depois o próprio grupo o atacou. Nós escolhemos esses ataques, então eles não medem o que um atacante de fora tentaria. Cada integrante responde pela parte que fez, e preferimos as perguntas que apontam o que ficou fraco.""",
 }
