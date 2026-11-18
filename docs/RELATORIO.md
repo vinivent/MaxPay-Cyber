@@ -204,7 +204,7 @@ diferentes, o problema que a seção 6.7 demonstra no modo ECB.
 | 14 | Detecção de anomalias | AUC, precisão e revocação | 43.985 janelas |
 
 Reproduzíveis por `python -m maxpay.experiments` e verificados por
-`pytest` (52 testes).
+`pytest` (53 testes).
 
 ---
 
@@ -586,7 +586,7 @@ pip install -r requirements.txt
 
 python -m maxpay.experiments     # gera results/experimentos.json
 python -m maxpay.report          # regera este relatório
-pytest -q                          # 52 testes
+pytest -q                          # 53 testes
 uvicorn maxpay.api:app --reload  # dashboard em http://127.0.0.1:8000
 ```
 

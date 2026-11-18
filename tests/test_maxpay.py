@@ -418,3 +418,16 @@ def test_ataque_simulado_passa_pelo_caminho_real(cliente):
     operacoes = cliente.get("/api/cofre/operacoes").json()
     assert operacoes["total"] == 12
     assert all(o["tipo"] == "decifragem" and o["resultado"] == "falha" for o in operacoes["operacoes"])
+    assert not any({"ip", "dispositivo"} & o.keys() for o in operacoes["operacoes"])
+
+
+def test_julgamento_ignora_eventos_fora_do_horizonte(instalacao, monkeypatch):
+    antigo = pd.Timestamp("2026-11-17 14:02:00") - pd.Timedelta(days=registro.HORIZONTE_DIAS + 5)
+    monkeypatch.setattr(registro, "_agora", lambda: antigo)
+    for _ in range(8):
+        registro.registrar("decifragem", "MPC-128", "falha", 70, 40.0, integridade_ok=False)
+    monkeypatch.setattr(registro, "_agora", lambda: pd.Timestamp("2026-11-17 14:02:00"))
+    registro.registrar("cifragem", "MPC-128", "sucesso", 70, 40.0)
+    painel = registro.painel()
+    assert painel["eventos"]["total"] == 9
+    assert painel["janelas_julgadas"] == 0 and painel["janelas"] == []

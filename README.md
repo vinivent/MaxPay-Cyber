@@ -31,7 +31,7 @@ interface, e a tela recarrega sozinha quando o arquivo de resultados muda.
 Outros comandos:
 
 ```bash
-pytest -q                  # 52 testes
+pytest -q                  # 53 testes
 python -m maxpay.experiments --bigdata   # refaz só o lago de eventos, a IA e as detecções
 python -m maxpay.report    # regera docs/RELATORIO.md a partir dos resultados
 python -m maxpay.slides    # regera docs/slides/index.html

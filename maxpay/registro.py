@@ -11,6 +11,7 @@ from maxpay import detect, lake
 USUARIO_LOCAL = "operador"
 SEM_ROTULO = "nao_rotulado"
 MIN_EVENTOS_JANELA = 5
+HORIZONTE_DIAS = 30
 
 _trava = threading.RLock()
 _detector: dict = {"assinatura": None, "modelo": None}
@@ -93,10 +94,11 @@ def detector() -> detect.DetectorAnomalias | None:
         return _detector["modelo"]
 
 
-def _pontuar_janelas(det: detect.DetectorAnomalias) -> pd.DataFrame:
+def _pontuar_janelas(det: detect.DetectorAnomalias, instante: pd.Timestamp) -> pd.DataFrame:
     if not lake.tem_dados(lake.VIVO_DIR):
         return pd.DataFrame()
-    janelas = lake.janelas(lake.conectar(lake.VIVO_DIR), min_eventos=MIN_EVENTOS_JANELA)
+    desde = (instante - pd.Timedelta(days=HORIZONTE_DIAS)).date()
+    janelas = lake.janelas(lake.conectar(lake.VIVO_DIR, desde), min_eventos=MIN_EVENTOS_JANELA)
     if janelas.empty:
         return janelas
     return det.pontuar(janelas.drop(columns=["anomala", "rotulo_real"]))
@@ -106,7 +108,7 @@ def _julgar_janela(instante: pd.Timestamp) -> None:
     det = detector()
     if det is None:
         return
-    pontuadas = _pontuar_janelas(det)
+    pontuadas = _pontuar_janelas(det, instante)
     if pontuadas.empty:
         return
     atual = pontuadas["janela"] == instante.floor(f"{lake.JANELA_MINUTOS}min")
@@ -161,7 +163,7 @@ def painel(limite_janelas: int = 20) -> dict:
                 "ultimo": linha[4].isoformat(timespec="seconds"),
             }
         if det is not None:
-            pontuadas = _pontuar_janelas(det)
+            pontuadas = _pontuar_janelas(det, _agora())
             if not pontuadas.empty:
                 janelas_julgadas = len(pontuadas)
                 recentes = pontuadas.sort_values("janela", ascending=False).head(limite_janelas)
@@ -183,6 +185,7 @@ def painel(limite_janelas: int = 20) -> dict:
             "limiar": round(det.limiar, 4) if det is not None else None,
             "janela_minutos": lake.JANELA_MINUTOS,
             "min_eventos_janela": MIN_EVENTOS_JANELA,
+            "horizonte_dias": HORIZONTE_DIAS,
             "eventos": eventos,
             "janelas_julgadas": janelas_julgadas,
             "janelas": janelas,

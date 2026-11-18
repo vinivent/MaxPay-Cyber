@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import shutil
 import time
+from datetime import date
 from pathlib import Path
 
 import duckdb
@@ -136,10 +137,12 @@ def contar_deteccoes(destino: Path | str = DETECCOES_DIR) -> dict:
     return {origem: int(total) for origem, total in linhas}
 
 
-def conectar(origem: Path | str = DATA_DIR) -> duckdb.DuckDBPyConnection:
+def conectar(origem: Path | str = DATA_DIR, desde: date | None = None) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect()
+    recorte = f" WHERE CAST(dia AS DATE) >= DATE '{desde.isoformat()}'" if desde else ""
     con.execute(
-        f"CREATE OR REPLACE VIEW eventos AS SELECT * FROM read_parquet('{Path(origem)}/**/*.parquet', hive_partitioning=1)"
+        "CREATE OR REPLACE VIEW eventos AS SELECT * FROM "
+        f"read_parquet('{Path(origem)}/**/*.parquet', hive_partitioning=1){recorte}"
     )
     return con
 

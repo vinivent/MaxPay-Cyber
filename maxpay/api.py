@@ -82,6 +82,9 @@ def _b64_para_bytes(dado: str, rotulo: str) -> bytes:
     return bruto
 
 
+CAMPOS_PUBLICOS_DA_OPERACAO = ("ts", "tipo", "algoritmo", "resultado", "bytes", "latencia_ms", "detalhe")
+
+
 def _registrar(
     pedido: Request, tipo: str, algoritmo: str, resultado: str, bytes_: int, ms: float,
     detalhe: str = "", integridade_ok: bool = True,
@@ -253,7 +256,8 @@ def estego_exemplo(
 
 @app.get("/api/cofre/operacoes")
 def operacoes(limite: int = Query(200, ge=1, le=2000)) -> dict:
-    return {"operacoes": registro.operacoes(limite), "total": registro.total_de_eventos()}
+    linhas = [{campo: o[campo] for campo in CAMPOS_PUBLICOS_DA_OPERACAO} for o in registro.operacoes(limite)]
+    return {"operacoes": linhas, "total": registro.total_de_eventos()}
 
 
 # --------------------------------------------------------------------------
